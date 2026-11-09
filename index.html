@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>東京合戦 - 東京都全53市区町村 開拓×レトロFF風コマンド合戦</title>
+  <meta name="description" content="東京都全53市区町村（23区・多摩・西多摩町村）どこからでも旗揚げ可能！開拓内政、特産品外交、レトロFF風3v3コマンド合戦で東京統一を目指す本格戦略シミュレーションWebアプリ。">
+  <link rel="icon" type="image/x-icon" href="icon.ico">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5012440476019514" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Full Screen Game Viewport (Fixed to 100vh) -->
+  <div class="game-viewport">
+
+    <!-- Top Header Bar -->
+    <header id="game-header">
+    <div class="logo-group">
+      <img src="icon.png" alt="東京合戦" style="width: 28px; height: 28px; border-radius: 6px; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); object-fit: cover;">
+      <h1 class="logo-title">東京合戦</h1>
+      <div class="calendar-badge" id="txt-calendar">2026年 4月</div>
+      <div style="font-size: 13px; font-weight: bold; margin-left: 8px;">
+        <span id="txt-faction-name">新宿不夜城軍</span>
+        <span id="txt-faction-leader" style="font-size: 11px; color: var(--text-dim); margin-left: 4px;">[歌舞伎町夜皇]</span>
+      </div>
+      <!-- Crown Badge for Single Leader -->
+      <div id="badge-single-leader" class="crown-badge" style="display: none;">
+        👑 <span style="letter-spacing:1px;">東京単独首位（覇王）</span>
+      </div>
+    </div>
+
+    <!-- Player Resources Status -->
+    <div class="resources-bar">
+      <div class="res-item">
+        <span class="res-label">軍資金</span>
+        <span class="res-val gold" id="txt-funds">10,000</span>
+      </div>
+      <div class="res-item" style="border-left: 2px solid rgba(251, 191, 36, 0.4); padding-left: 10px;">
+        <span class="res-label">今月内政枠 (3割)</span>
+        <span class="res-val" style="color: #38bdf8;" id="txt-budget-status">💰3,000 / 3,000</span>
+      </div>
+      <div class="res-item">
+        <span class="res-label">平均民意</span>
+        <span class="res-val" style="color: #6ee7b7;" id="txt-avg-order">85%</span>
+      </div>
+      <div class="res-item">
+        <span class="res-label">特産物資</span>
+        <span class="res-val" style="color: #fcd34d;" id="txt-specialties-count">2個</span>
+      </div>
+      <div class="res-item">
+        <span class="res-label">領内総人口</span>
+        <span class="res-val" style="color: #a7f3d0;" id="txt-total-population">35.3万人</span>
+      </div>
+      <div class="res-item">
+        <span class="res-label">支配自治体</span>
+        <span class="res-val cyan" id="txt-regions">3 / 53</span>
+      </div>
+      <div class="res-item">
+        <span class="res-label">動員総兵力</span>
+        <span class="res-val" id="txt-troops">4,500</span>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="controls-group">
+      <button class="btn btn-party" id="btn-open-party">👥 部隊編成</button>
+      <button class="btn" style="background: linear-gradient(135deg, #059669, #047857); border-color:#10b981;" id="btn-open-diplomacy">🤝 外交・特産品</button>
+      <button class="btn" id="btn-save-game" title="ゲーム進行をローカル保存">💾 セーブ</button>
+      <button class="btn" id="btn-load-game" title="保存データを再開">📂 ロード</button>
+      <a class="btn" style="background: rgba(16, 185, 129, 0.2); border-color:#10b981; color:#6ee7b7; text-decoration:none;" href="https://yukiyanart-feedback-hub.web.app/?app_id=tokyo_gassen" target="_blank" rel="noopener noreferrer" title="Feedback & Release Hub 公式窓口を開く">💬 要望・不具合</a>
+      <button class="btn" id="btn-sound-toggle">🔊 音声ON</button>
+      <button class="btn" id="btn-origin-display" style="background: rgba(59, 130, 246, 0.2); border-color: rgba(96, 165, 250, 0.4); color: #93c5fd; cursor: pointer;" title="最初に旗揚げした市区町村（クリックで別の地域から新しく始めることも可能です）">📍 旗揚げ: <b id="txt-starting-origin" style="color: #ffffff; margin-left: 2px;">新宿区</b></button>
+      <button class="btn btn-turn" id="btn-end-turn">⏩ ターン送り</button>
+    </div>
+  </header>
+
+  <!-- Main Viewport -->
+  <div class="main-wrapper">
+
+    <!-- Interactive SVG Map Stage -->
+    <div class="map-stage" id="map-stage">
+      <svg id="tokyo-svg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <radialGradient id="oceanGlow" cx="85%" cy="80%" r="50%">
+            <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#0b0f19" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="1200" height="700" fill="url(#oceanGlow)"/>
+
+        <!-- Zoomable & Pannable Group -->
+        <g id="map-content">
+          <g id="g-regions"></g>
+          <g id="g-labels"></g>
+        </g>
+      </svg>
+
+      <!-- Map Zoom Tools -->
+      <div class="map-nav-tools">
+        <button class="map-nav-btn" id="btn-zoom-in" title="拡大">+</button>
+        <button class="map-nav-btn" id="btn-zoom-out" title="縮小">-</button>
+        <button class="map-nav-btn" id="btn-zoom-reset" title="初期表示に戻す">⟲</button>
+      </div>
+
+      <!-- Faction Color Legend -->
+      <div class="map-legend">
+        <div class="legend-title">東京都53自治体（全地域 単独スタート）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div>千代田都庁軍（千代田区）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#db2777;"></div>新宿不夜城軍（新宿区）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d97706;"></div>港・湾岸コンツェルン（港区）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div>城北・足立義勇軍（足立区）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#059669;"></div>武蔵野文教軍（武蔵野市）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div>八王子山岳衆（八王子市）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#334155;"></div>地方自治警備隊（各市区町村 独立勢力）</div>
+      </div>
+    </div>
+
+    <!-- Right Command Deck -->
+    <aside class="command-deck">
+      <div class="deck-header">
+        <div class="deck-title-row">
+          <h2 class="region-title" id="deck-reg-name">新宿区</h2>
+          <span class="region-area-tag" id="deck-reg-area">都区部</span>
+        </div>
+        <div class="faction-owner-badge" id="deck-owner-badge">新宿ネオン同盟 領</div>
+        <div style="font-size: 11px; color: #fcd34d; margin-top: 4px;" id="deck-specialty-text">📦 特産品: サイバー情報チップ</div>
+      </div>
+
+      <div class="deck-content">
+        <!-- Statistics Grid (2x2 Balanced Grid) -->
+        <div class="stat-card-grid">
+          <div class="stat-box">
+            <span class="stat-box-title">守備兵力</span>
+            <span class="stat-box-value" style="color: #fef08a;" id="stat-troops">3,500</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-box-title">地域人口（台帳実数）</span>
+            <div style="display:flex; align-items:baseline; justify-content:center; gap:3px;">
+              <span class="stat-box-value" style="color: #a7f3d0;" id="stat-population">353,000</span>
+              <span style="font-size:11px; color:#cbd5e1;">人</span>
+            </div>
+            <span id="stat-migration-badge" style="font-size: 10px; color: #94a3b8; text-align:center; margin-top:3px;">前月比 ±0人</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-box-title">経済力（開拓度）</span>
+            <span class="stat-box-value" style="color: #38bdf8;" id="stat-economy">800</span>
+            <span style="font-size: 10px; color: #f59e0b; text-align:center; margin-top:3px;" id="stat-subsidy-preview">4月補助金: 💰1,200</span>
+          </div>
+          <div class="stat-box">
+            <div style="display:flex; justify-content:space-between;">
+              <span class="stat-box-title">民意（55%未満流出）</span>
+              <span class="stat-box-title" id="stat-order">85%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="bar-order" style="width: 85%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bullying Warning Banner (Dynamic) -->
+        <div id="deck-bullying-warning" class="bullying-warning" style="display: none;">
+          ⚠️ <b>【大義なき侵略警告】</b><br>
+          相手は弱小自治体です。侵略を強行すると世論が反発し、自国全域の民意が激減して領民が近隣へ逃散します！
+        </div>
+
+        <!-- Commands Panel -->
+        <div class="actions-section">
+          <div class="section-label">統治・物資・軍事コマンド</div>
+
+          <!-- Friendly Territory Controls -->
+          <div id="friendly-actions" style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="cmd-btn" id="btn-cmd-develop">
+              <span>🌾 商業開拓・投資</span>
+              <span class="cost-tag">💰1,200</span>
+            </button>
+            <button class="cmd-btn" id="btn-cmd-recruit">
+              <span>🛡️ 兵力動員・募兵</span>
+              <span class="cost-tag" id="cost-recruit">💰750</span>
+            </button>
+            <button class="cmd-btn" id="btn-cmd-police">
+              <span>👮 治安巡回（民意回復）</span>
+              <span class="cost-tag">💰600</span>
+            </button>
+            <button class="cmd-btn" id="btn-cmd-procure">
+              <span>📦 特産品物資の調達</span>
+              <span class="cost-tag">💰800</span>
+            </button>
+            <button class="cmd-btn cmd-btn-attack" id="btn-cmd-attack">
+              <span>⚔️ 隣接地域へ進軍（合戦出陣）</span>
+              <span style="font-size: 11px;">FF風戦闘</span>
+            </button>
+            <button class="cmd-btn" id="btn-cmd-transport">
+              <span>🚚 兵力輸送（領内移動）</span>
+              <span style="font-size: 11px;">部隊再編</span>
+            </button>
+          </div>
+
+          <!-- Hostile / Neutral Territory Controls -->
+          <div id="hostile-actions" style="display: none; flex-direction: column; gap: 8px;">
+            <button class="cmd-btn cmd-btn-attack" id="btn-direct-attack">
+              ⚔️ 隣接領地から侵攻（合戦開始）
+            </button>
+            <button class="cmd-btn" style="background: rgba(5, 150, 105, 0.2); border-color:#10b981;" id="btn-direct-diplomacy">
+              🤝 特産品を贈って親善（同盟締結）
+            </button>
+            <div style="font-size:11px; color:var(--text-dim); line-height:1.4; padding: 4px;">
+              ※自軍の領地と隣接していれば、選抜3名の部隊を出陣させて制圧するか、特産品を贈って不戦協定を結べます。
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="logs-section">
+          <div class="section-label">情勢・合戦・外交記録</div>
+          <div class="log-list" id="log-list">
+            <!-- Dynamic Logs -->
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Bottom News Ticker -->
+    <footer>
+      <div class="ticker-badge">速報</div>
+      <div class="ticker-text" id="ticker-text">東京合戦：東京全域で各大名勢力が領地拡張の準備を開始。</div>
+    </footer>
+  </div><!-- /.game-viewport -->
+
+  <!-- Bottom Editorial & Support Section (Compact & Structured) -->
+  <div class="bottom-editorial-section">
+
+    <!-- Google AdSense Banner Unit (AdSense Policy Compliant) -->
+    <div class="adsense-banner-container" style="width: 100%; margin-top: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+      <ins class="adsbygoogle"
+           style="display:block; width:100%; max-height:90px;"
+           data-ad-client="ca-pub-5012440476019514"
+           data-ad-slot="6530054130"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+        try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+      </script>
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 900px; font-size: 0.72rem; opacity: 0.85;">
+        <span style="letter-spacing: 1.5px; font-weight: 600; color: #fbbf24;">S P O N S O R E D</span>
+        <span style="color: #94a3b8;">東京合戦 (Tokyo Conquest) 公式</span>
+      </div>
+    </div>
+
+    <!-- yukiyanArt Cross-Promotion & Feedback Hub Bar -->
+    <div id="promo-bar"></div>
+
+    <!-- Strategic Knowledge & Tokyo Municipalities Editorial Footer (SEO & AdSense Quality Content) -->
+    <section class="knowledge-footer" id="knowledge-footer">
+      <div class="kf-header" id="kf-toggle-btn">
+        <div class="kf-title-group">
+          <span class="kf-icon">📜</span>
+          <h3 class="kf-title">東京合戦 攻略ナレッジ ＆ 東京都53自治体 風土記・合戦極意書</h3>
+        </div>
+        <span class="kf-toggle-indicator" id="kf-toggle-indicator">▼ 解説ガイド</span>
+      </div>
+      <div class="kf-body" id="kf-body" style="display: block;">
+        <div class="kf-grid">
+          <div class="kf-card">
+            <h4>🏯 自治体開拓と内政・物資調達の極意</h4>
+            <p>
+              本作は東京都全53市区町村（23区・多摩・西多摩町村）を舞台にした開拓・陣地取りシミュレーションです。
+              各領地では【商業開発】によって毎月の税収（資金）を高め、【募兵】によって防衛・侵攻兵力を増強できます。
+              また、各自治体固有の【特産品】を調達することで、隣接勢力への親善贈呈や同盟締結、部隊強化が可能となります。
+              各月の内政行動は所持軍資金の30%までという規律が課されており、無謀な浪費を抑えながら計画的に領国を発展させる経営手腕が求められます。
+            </p>
+          </div>
+          <div class="kf-card">
+            <h4>⚔️ レトロFF風3v3合戦と陣形の奥義</h4>
+            <p>
+              合戦は昔のクラシックRPG（初期ファイナルファンタジー風）の3対3コマンドバトルで展開します。
+              物理近接職は「前列」、術士・電脳砲撃・スナイパー・ヒーラーは「後列」に布陣。
+              前列の味方が健在である限り、後列への通常物理攻撃は被ダメージが50%軽減されます。
+              敵の弱点を見極め、前衛で強固に耐えつつ、後衛から強力な全体魔法や支援スキルを繰り出す隊形管理が勝利への鍵です。
+            </p>
+          </div>
+          <div class="kf-card">
+            <h4>🤝 特産品交易による親善外交と不戦防衛同盟</h4>
+            <p>
+              自領の特産品を隣接する勢力に差し出すことで、友好度を高めて「不戦・相互防衛協定」を締結できます。
+              自勢力が強大化して周囲からの警戒が高まった際や、特定の方面に戦力を集中したい時は、外交によって背後の安全を確保することが不可欠です。
+              相手との友好関係を巧みに操り、孤立を避けながら包囲網を築き上げましょう。
+            </p>
+          </div>
+          <div class="kf-card">
+            <h4>🛡️ 不屈の掟：敗戦からの再起と代理副官</h4>
+            <p>
+              戦いに敗れても直ちにゲームオーバーにはなりません。
+              10%の賠償金と武将1名の軍役徴発（一時的な貸与）に応じることで自領を守り抜き、留守を預かる「代理副官（能力80%）」と共に地道に国力を再建できます。
+              虎視眈々と資金と兵力を蓄え、力を整えて再び下克上の狼煙を上げることが可能です。
+            </p>
+          </div>
+        </div>
+        <div class="kf-footer-note">
+          <b>【東京都53自治体 風土記】</b><br>
+          千代田の中央政権、新宿不夜城、港区コンツェルン、城北足立義勇軍、武蔵野文教連盟、八王子西山要塞をはじめ、
+          世田谷、杉並、練馬、大田、江東、立川、町田、青梅、奥多摩、檜原村など、全自治体が独自の特色と英傑を擁しています。
+          どの自治体からでも自由に天下統一の旅を始めることができます。
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="width: 100%; max-width: 900px; margin: 16px auto 32px auto; text-align: center; font-size: 0.78rem; color: #94a3b8; line-height: 1.8;">
+      <div>
+        <a href="https://yukiyanart-feedback-hub.web.app/" target="_blank" rel="noopener noreferrer" style="color: #fbbf24; text-decoration: underline; margin-right: 12px;">プライバシーポリシー ＆ 免責事項</a> |
+        <a href="https://yukiyanart-feedback-hub.web.app/?app_id=tokyo_gassen" target="_blank" rel="noopener noreferrer" style="color: #fbbf24; text-decoration: underline; margin-left: 12px;">お問い合わせ (Feedback Hub)</a>
+      </div>
+      <div style="margin-top: 4px;">© 2026 yukiyanArt. All rights reserved.</div>
+    </footer>
+
+  </div><!-- /.bottom-editorial-section -->
+
+  <!-- =============================================
+       === MODAL: FF-STYLE 3v3 COMMAND BATTLE ===
+       ============================================= -->
+  <div class="modal-overlay" id="modal-ff-battle" style="display: none;">
+    <div class="ff-battle-modal">
+      
+      <!-- Top Battle Ticker -->
+      <div class="ff-battle-ticker">
+        <span id="ff-ticker-text">⚔️ 合戦開始！ コマンドを選択してください。</span>
+        <span id="ff-battle-turn-indicator" style="color: #fbbf24; font-size: 12px;">ターン進行中</span>
+      </div>
+
+      <!-- Action Announcement Banner -->
+      <div class="ff-action-banner" id="ff-action-banner">▶ コマンドを選択してください</div>
+
+      <!-- Arena View (Left: Enemies, Right: Allies) -->
+      <div class="ff-arena" id="ff-arena">
+        <div class="ff-arena-bg" id="ff-arena-bg"></div>
+        
+        <!-- Enemies Team Column (Left) -->
+        <div class="ff-team-column" id="ff-enemies-column">
+          <!-- Battlers Enemy 1-3 -->
+        </div>
+
+        <!-- Allies Team Column (Right) -->
+        <div class="ff-team-column" id="ff-allies-column">
+          <!-- Battlers Ally 1-3 -->
+        </div>
+
+        <!-- Scrolling Combat Log Stream -->
+        <div class="ff-combat-log-stream" id="ff-combat-log-stream">合戦が開始されました</div>
+      </div>
+
+      <!-- Classic FF-Style Bottom Command Box (Left: Commands/Targets, Right: Party Status Table) -->
+      <div class="ff-command-box">
+        
+        <!-- Left Subwindow: Action Commands & Target List -->
+        <div class="ff-subwindow ff-left-subwindow" id="ff-left-subwindow">
+          
+          <!-- Action Commands Menu -->
+          <div class="ff-menu-panel" id="ff-main-menu">
+            <button class="ff-cmd-btn" id="btn-ff-attack">⚔️ たたかう</button>
+            <button class="ff-cmd-btn" id="btn-ff-skills">✨ スキル</button>
+            <button class="ff-cmd-btn" id="btn-ff-defend">🛡️ ぼうぎょ</button>
+            <button class="ff-cmd-btn" id="btn-ff-escape">🏃 にげる</button>
+          </div>
+
+          <!-- Target Selection & Info Column -->
+          <div class="ff-targets-panel" id="ff-targets-panel">
+            <!-- Injected dynamically -->
+          </div>
+
+          <!-- Skills Selection Subwindow (toggleable) -->
+          <div class="ff-skills-panel" id="ff-skills-subwindow" style="display: none;">
+            <div style="font-size: 11px; color: #fbbf24; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: space-between;">
+              <span>発動スキル選択</span>
+              <span id="btn-close-skills" style="cursor: pointer; color: #f87171;">✕ 戻る</span>
+            </div>
+            <div id="ff-skills-list" style="display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 120px;">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Subwindow: Allies Party Status Table (FF2 Style) -->
+        <div class="ff-subwindow ff-status-panel" id="ff-allies-status-box">
+          <!-- Injected dynamically: Name, HP/MaxHP, MP/MaxMP -->
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       === MODAL: DIPLOMACY & SPECIALTIES (外交・特産品) ===
+       ============================================= -->
+  <div class="modal-overlay" id="modal-diplomacy" style="display: none;">
+    <div class="modal-card" style="max-width: 720px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🤝 特産品交易＆親善外交</h2>
+        <button class="btn" onclick="document.getElementById('modal-diplomacy').style.display='none'">閉じる</button>
+      </div>
+
+      <div style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+        自領地の特産品（物資）を調達して隣接地域に差し出すことで、友好度を高めて**「不戦・相互防衛協定」**を締結できます。<br>
+        強大化して攻められない時は、外交で味方を増やして背後を守りましょう。
+      </div>
+
+      <!-- Player Inventory -->
+      <div style="background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+        <div style="font-size:12px; font-weight:bold; color:var(--accent-gold); margin-bottom:6px;">📦 我が国の備蓄特産品</div>
+        <div id="diplomacy-inventory-list" style="display:flex; flex-wrap:wrap; gap:10px;">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <!-- Neighboring Relations List -->
+      <div class="section-label" style="margin-top: 8px;">隣接地域との外交関係・同盟協定</div>
+      <div id="diplomacy-neighbors-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto;">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       === MODAL: PARTY FORMATION (部隊編成) ===
+       ============================================= -->
+  <div class="modal-overlay" id="modal-party" style="display: none;">
+    <div class="modal-card" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2 class="modal-title">👥 出陣部隊編成 (スタメン3名)</h2>
+        <button class="btn" onclick="document.getElementById('modal-party').style.display='none'">完了</button>
+      </div>
+
+      <p style="font-size: 13px; color: #cbd5e1;">
+        合戦に出陣する3名の武将を編成します。スロットをクリックしてから下の武将一覧を選択すると入替可能です。
+      </p>
+
+      <div class="party-slots-grid" id="party-slots-container">
+        <!-- 3 slots injected dynamically -->
+      </div>
+
+      <div class="section-label" style="margin-top: 10px;">所持武将一覧（地区制圧で登用）</div>
+      <div class="roster-grid" id="roster-container">
+        <!-- Roster injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       === MODAL: HERO RECRUITMENT (登用演出) ===
+       ============================================= -->
+  <div class="modal-overlay" id="modal-hero-recruit" style="display: none;">
+    <div class="modal-card" style="max-width: 500px; text-align: center;">
+      <div style="font-size: 44px; margin-bottom: 8px;" id="recruit-hero-avatar">🗼</div>
+      <h2 style="color: #fbbf24; font-size: 24px; margin-bottom: 4px;" id="recruit-hero-name">スカイツリー技官</h2>
+      <div style="font-size: 14px; color: #38bdf8; font-weight: bold;" id="recruit-hero-title">墨田区・天空の電波狙撃手</div>
+      <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 14px; margin: 16px 0; text-align: left;">
+        <div style="font-size: 12px; color: #f8fafc;" id="recruit-hero-desc">地上634mのアンテナから集束レーザーを地上へ直撃！</div>
+        <div style="font-size: 11px; color: #fbbf24; margin-top: 8px;" id="recruit-hero-skill">🔥 必殺技: 【天空観測レーザー照射】</div>
+      </div>
+      <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 16px;">
+        この武将が配下に加わりました！【部隊編成】よりいつでも合戦スタメンに選抜できます！
+      </p>
+      <button class="btn btn-turn" style="margin: 0 auto;" onclick="document.getElementById('modal-hero-recruit').style.display='none'">登用を承認</button>
+    </div>
+  </div>
+
+  <!-- Modal: Faction Selection (All 53 Municipalities) -->
+  <div class="modal-overlay" id="modal-faction" style="display: none;">
+    <div class="modal-card modal-card-faction">
+      <div class="modal-header">
+        <h2 class="modal-title">🏯 旗揚げ自治体の選択 (全53市区町村対応)</h2>
+      </div>
+      <p style="font-size: 13px; color: #cbd5e1; margin: 0;">
+        東京全53自治体（23特別区・多摩・西多摩町村）のどこからでも旗揚げが可能です！お好みの街を選択して東京平定を目指してください。各自治体には固有の名将3名が最初から配下として従軍します。
+      </p>
+
+      <div class="faction-filter-deck">
+        <input type="text" id="faction-search-input" class="faction-search-input" placeholder="🔍 自治体名や名将で検索 (例: 世田谷, 新宿, 八王子, 奥多摩...)" />
+        <div class="faction-area-tabs" id="faction-area-tabs">
+          <button class="filter-tab active" data-area="all">すべて (53)</button>
+          <button class="filter-tab" data-area="23wards">都区部 (23区)</button>
+          <button class="filter-tab" data-area="north_tama">北多摩・武蔵野 (17)</button>
+          <button class="filter-tab" data-area="south_west_tama">南多摩・西多摩 (13)</button>
+        </div>
+      </div>
+
+      <div class="factions-grid" id="factions-grid">
+        <!-- 53 Factions injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic Modal (Target picker / Transport / Game Over) -->
+  <div class="modal-overlay" id="modal-generic" style="display: none;">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-generic-title">通知</h2>
+      </div>
+      <div id="modal-generic-content"></div>
+    </div>
+  </div>
+
+  <!-- Game Scripts -->
+  <script src="yukiyanart-promo.js"></script>
+  <script src="pixel-sprites.js"></script>
+  <script src="battle-backgrounds.js"></script>
+  <script src="regions-data.js"></script>
+  <script src="characters.js"></script>
+  <script src="audio.js"></script>
+  <script src="battle-engine.js"></script>
+  <script src="game.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "tokyo-conquest",
+  "version": "1.0.0",
+  "description": "東京都全域（23区＋多摩30市町村）を舞台にした信長の野望風領地開拓・陣取りシミュレーションゲーム",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -l 5173",
+    "test": "node -e \"console.log('Tokyo Conquest OK')\""
+  },
+  "keywords": ["game", "tokyo", "simulation", "strategy", "nobunaga"],
+  "author": "Antigravity",
+  "license": "MIT"
+}
