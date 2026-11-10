@@ -1354,6 +1354,10 @@ class TokyoRpgEngine {
     }
   }
 
+  // ========================================================
+  // === SFC DQ3 STYLE TOWN PIXEL ENGINE (Full Aesthetics) ===
+  // ========================================================
+
   renderTown(ctx, camX, camY) {
     if (!this.currentArea) return;
     const area = this.currentArea;
@@ -1372,7 +1376,7 @@ class TokyoRpgEngine {
     const midX = Math.floor(area.width / 2);
     const midY = Math.floor(area.height / 2);
 
-    // 1. Draw Ground Floor & High-Density Backdrop Cityscape (Golden Rule #2 & #5)
+    // 1. Draw Base Terrain: Lush Green Grassland, Natural Cobblestone, Stream & Perimeter Stone Ramparts
     for (let y = minTileY; y <= maxTileY; y++) {
       for (let x = minTileX; x <= maxTileX; x++) {
         const px = x * this.tileSize;
@@ -1381,55 +1385,38 @@ class TokyoRpgEngine {
         const isWall = (x === 0 || x === area.width - 1 || y === 0 || (y === area.height - 1 && (x < midX - 1 || x > midX + 1)));
 
         if (isWall) {
-          // Backdrop Skyscraper Wall with glowing windows, neon cables & AC units
-          this.renderBackdropBuildingTile(ctx, px, py, x, y, tier);
+          // SFC DQ3 Stone Fortress Castle Ramparts
+          this.drawDq3StoneWall(ctx, px, py, x, y, area);
         } else {
-          // Walkable Roads & Central Plaza
-          const isMainStreetX = (x >= midX - 1 && x <= midX + 1);
-          const isMainStreetY = (y >= midY - 1 && y <= midY + 1);
-          const isPlaza = (Math.abs(x - midX) <= 3 && Math.abs(y - midY) <= 3);
+          // Water Stream running along east side
+          const isStream = (x === 18 && y >= 8 && y <= 16) || (x === 19 && y >= 10 && y <= 15);
+          const isBridge = (x === 18 && y === 12);
 
-          if (isPlaza) {
-            // Central Plaza: Paved Stone with Ornamentation
-            ctx.fillStyle = tier >= 6 ? '#1e293b' : (tier >= 4 ? '#334155' : (tier >= 2 ? '#475569' : '#78350f'));
-            ctx.fillRect(px, py, this.tileSize, this.tileSize);
-            ctx.strokeStyle = tier >= 5 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(255, 255, 255, 0.12)';
-            ctx.strokeRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
+          // Path & Plaza detection
+          const isMainNorthSouth = (x >= midX - 1 && x <= midX + 1 && y >= 6);
+          const isEastWest = (y >= midY && y <= midY + 1 && x >= 4 && x <= 20);
+          const isPlaza = (Math.abs(x - midX) <= 2 && Math.abs(y - midY) <= 2);
+          const isPath = isMainNorthSouth || isEastWest || isPlaza;
 
-            // Plaza Center Emblem / Fountain / Monument
-            if (x === midX && y === midY) {
-              const coreColor = tier >= 6 ? '#38bdf8' : (tier >= 4 ? '#fbbf24' : '#f97316');
-              ctx.fillStyle = coreColor;
-              ctx.beginPath();
-              ctx.arc(px + this.tileSize / 2, py + this.tileSize / 2, 7, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          } else if (isMainStreetX || isMainStreetY) {
-            // Main Boulevard: Clear Paved Stone / Cyber Light Rails
-            ctx.fillStyle = tier >= 6 ? '#0f172a' : (tier >= 3 ? '#1e293b' : (tier === 2 ? '#3f3f46' : '#92400e'));
-            ctx.fillRect(px, py, this.tileSize, this.tileSize);
-            ctx.strokeStyle = tier >= 5 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.06)';
-            ctx.strokeRect(px, py, this.tileSize, this.tileSize);
-
-            // Center Road Stripes
-            if (tier >= 4 && (x === midX || y === midY)) {
-              ctx.fillStyle = tier >= 6 ? 'rgba(56, 189, 248, 0.45)' : 'rgba(251, 191, 36, 0.35)';
-              if (x === midX) ctx.fillRect(px + this.tileSize / 2 - 1, py, 2, this.tileSize);
-              if (y === midY) ctx.fillRect(px, py + this.tileSize / 2 - 1, this.tileSize, 2);
-            }
+          if (isStream && !isBridge) {
+            // DQ3 Blue River / Moat with waves & reeds
+            this.drawDq3WaterTile(ctx, px, py, x, y);
+          } else if (isBridge) {
+            // Wooden Footbridge over stream
+            this.drawDq3WoodBridgeTile(ctx, px, py);
+          } else if (isPath) {
+            // DQ3 Natural Cobblestone Pathway
+            this.drawDq3CobblestoneTile(ctx, px, py, x, y, isPlaza, tier);
           } else {
-            // Side Alleyways & Courtyards
-            ctx.fillStyle = tier >= 5 ? '#0b0f19' : (tier >= 3 ? '#1c1917' : '#451a03');
-            ctx.fillRect(px, py, this.tileSize, this.tileSize);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-            ctx.strokeRect(px, py, this.tileSize, this.tileSize);
+            // DQ3 Lush Vibrant Green Grass
+            this.drawDq3GrassTile(ctx, px, py, x, y);
           }
         }
       }
     }
 
-    // 2. Render Street Props & Objects (Scales with 7 Tiers)
-    this.renderTownProps(ctx, area, tier, minTileX, maxTileX, minTileY, maxTileY);
+    // 2. Environmental Nature: Trees, Flowerbeds, Central Stone Well
+    this.drawDq3EnvironmentProps(ctx, area, minTileX, maxTileX, minTileY, maxTileY, tier);
 
     // 3. Exit gate highlight at bottom
     const exitX = midX * this.tileSize;
@@ -1441,22 +1428,21 @@ class TokyoRpgEngine {
     ctx.textAlign = 'center';
     ctx.fillText('▼ 出口 (広域マップへ) ▼', exitX + this.tileSize / 2, exitY + 20);
 
-    // 4. Render Focused 4-5 Enterable Key Facilities (Golden Rule #2)
-    (area.facilities || []).forEach(fac => {
-      this.renderDetailedFacility(ctx, fac, tier);
-    });
+    // 4. Render Interior Cutaway Rooms (Inn with beds & red carpet, Shop with weapon racks)
+    this.drawDq3InnBuilding(ctx, 3, 3, 6, 5, tier);
+    this.drawDq3ShopBuilding(ctx, 15, 3, 6, 5, tier);
 
-    // 5. Render Distinctive Municipality Landmark (Golden Rule #1 & #3)
-    if (area.landmarkBuilding) {
-      this.renderLandmarkBuilding(ctx, area.landmarkBuilding, tier);
-    }
-
-    // 6. Render Local Specialty Production Factory (Specialty Economic Hub)
+    // 5. Render Local Specialty Production Factory
     if (area.specialtyFactory) {
-      this.renderSpecialtyFactory(ctx, area.specialtyFactory, tier);
+      this.drawDq3SpecialtyFactoryBuilding(ctx, 3, 10, 5, 5, area.specialtyFactory, tier);
     }
 
-    // 7. Render Core NPCs
+    // 6. Render Roofed Iconic Landmark (Shrine, Church, Tower) at North Center
+    if (area.landmarkBuilding) {
+      this.drawDq3LandmarkRoofedBuilding(ctx, 10, 2, 5, 4, area.landmarkBuilding, tier);
+    }
+
+    // 7. Render Core NPCs with enhanced retro sprites
     (area.npcs || []).forEach(npc => {
       const nx = npc.position.x * this.tileSize;
       const ny = npc.position.y * this.tileSize;
@@ -1473,197 +1459,638 @@ class TokyoRpgEngine {
     this.renderDynamicCitizens(ctx, area, tier);
   }
 
-  // Draw Dense Backdrop Buildings (80% non-enterable aesthetic backdrop with neon & windows)
-  renderBackdropBuildingTile(ctx, px, py, x, y, tier) {
+  // --- SFC DQ3 PROCEDURAL TILE GENERATORS ---
+
+  // Lush Grass Tile with pixel highlights
+  drawDq3GrassTile(ctx, px, py, x, y) {
+    ctx.fillStyle = '#15803d'; // Rich grass base
+    ctx.fillRect(px, py, this.tileSize, this.tileSize);
+
+    // Pixel blades of grass
+    const s = (x * 13 + y * 17) % 7;
+    ctx.fillStyle = '#22c55e'; // Bright green blade
+    ctx.fillRect(px + 4 + (s * 3) % 20, py + 6 + (s * 4) % 18, 2, 4);
+    ctx.fillRect(px + 14 + (s * 2) % 12, py + 16 + (s * 5) % 10, 2, 4);
+
+    ctx.fillStyle = '#4ade80'; // Tip highlight
+    ctx.fillRect(px + 5 + (s * 3) % 20, py + 5 + (s * 4) % 18, 1, 2);
+
+    // Subtle dark shadows
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(px + 6 + (s * 4) % 18, py + 22, 3, 2);
+  }
+
+  // Rounded Natural Cobblestone Pathway Tile
+  drawDq3CobblestoneTile(ctx, px, py, x, y, isPlaza, tier) {
+    // Dirt border underneath
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(px, py, this.tileSize, this.tileSize);
+
+    // Cobblestone stones
+    ctx.fillStyle = isPlaza ? '#94a3b8' : '#64748b';
+    ctx.fillRect(px + 2, py + 2, 12, 12);
+    ctx.fillRect(px + 16, py + 2, 14, 12);
+    ctx.fillRect(px + 2, py + 16, 14, 14);
+    ctx.fillRect(px + 18, py + 16, 12, 14);
+
+    // Stone top-left highlights (SFC DQ3 3D feel)
+    ctx.fillStyle = isPlaza ? '#cbd5e1' : '#94a3b8';
+    ctx.fillRect(px + 2, py + 2, 12, 2);
+    ctx.fillRect(px + 2, py + 2, 2, 12);
+    ctx.fillRect(px + 16, py + 2, 14, 2);
+    ctx.fillRect(px + 16, py + 2, 2, 12);
+    ctx.fillRect(px + 2, py + 16, 14, 2);
+    ctx.fillRect(px + 2, py + 16, 2, 14);
+
+    // Stone bottom-right shadow crevices
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(px + 12, py + 4, 2, 10);
+    ctx.fillRect(px + 4, py + 12, 10, 2);
+    ctx.fillRect(px + 28, py + 4, 2, 10);
+    ctx.fillRect(px + 18, py + 12, 12, 2);
+  }
+
+  // Heavy Stone Castle Wall & Ramparts Tile
+  drawDq3StoneWall(ctx, px, py, x, y, area) {
+    // Deep shadow base
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
+
+    // Stonework blocks
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(px + 2, py + 2, this.tileSize - 4, this.tileSize - 4);
+
+    // Block Top Highlights
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(px + 3, py + 3, this.tileSize - 6, 3);
+    ctx.fillRect(px + 3, py + 3, 3, this.tileSize - 6);
+
+    // Block Crevice Shadows
     ctx.fillStyle = '#1e293b';
+    ctx.fillRect(px + this.tileSize - 5, py + 3, 2, this.tileSize - 6);
+    ctx.fillRect(px + 3, py + this.tileSize - 5, this.tileSize - 6, 2);
+
+    // Battlement grooves on outer edge
+    if (y === 0 || y === area.height - 1) {
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(px + 6, py + 6, 8, 4);
+      ctx.fillRect(px + 18, py + 6, 8, 4);
+    }
+  }
+
+  // Deep Blue River / Moat with waves & reeds
+  drawDq3WaterTile(ctx, px, py, x, y) {
+    // Earthy riverbank edge
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(px, py, this.tileSize, this.tileSize);
+
+    // Deep blue water
+    ctx.fillStyle = '#1d4ed8';
     ctx.fillRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
 
-    // Glowing windows in buildings
-    const seed = (x * 7 + y * 13 + this.tickCount * 0.01) % 1;
-    if (seed > 0.4) {
-      ctx.fillStyle = tier >= 5 ? '#38bdf8' : '#fef08a';
-      ctx.fillRect(px + 4, py + 4, 6, 6);
-      ctx.fillRect(px + 14, py + 4, 6, 6);
-      ctx.fillRect(px + 4, py + 14, 6, 6);
-      ctx.fillRect(px + 14, py + 14, 6, 6);
-    }
+    // Shimmering wave highlights
+    const wave = (this.tickCount * 0.08 + x + y) % 4;
+    ctx.fillStyle = '#60a5fa';
+    ctx.fillRect(px + 4 + wave * 4, py + 8, 8, 2);
+    ctx.fillRect(px + 12 - wave * 2, py + 20, 10, 2);
 
-    // Neon cables & pipes running along rooftops
-    if (y === 0) {
-      const neonColor = tier >= 6 ? '#38bdf8' : (tier >= 4 ? '#ec4899' : '#f59e0b');
-      ctx.fillStyle = neonColor;
-      ctx.fillRect(px, py + this.tileSize - 3, this.tileSize, 2);
+    // Water lily pads (randomized)
+    if ((x + y) % 3 === 0) {
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.arc(px + 14, py + 14, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
-  // Draw Distinctive Municipality Landmark (Tokyo Tower, Sensoji, Shinjuku Arch, Anime Studio etc.)
-  renderLandmarkBuilding(ctx, lm, tier) {
-    const lx = lm.position.x * this.tileSize;
-    const ly = lm.position.y * this.tileSize;
+  // Wooden Bridge Tile
+  drawDq3WoodBridgeTile(ctx, px, py) {
+    ctx.fillStyle = '#1d4ed8'; // Water underneath
+    ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    ctx.save();
-    // Shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.fillRect(lx - 20, ly + 20, 72, 12);
+    // Wooden Planks
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(px + 2, py, this.tileSize - 4, this.tileSize);
+    ctx.fillStyle = '#d97706';
+    for (let p = 2; p < this.tileSize - 2; p += 6) {
+      ctx.fillRect(px + 3, py + p, this.tileSize - 6, 4);
+    }
 
-    // Multi-tile Monumental Base
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(lx - 16, ly - 20, 64, 44);
-    ctx.strokeStyle = lm.color || '#fbbf24';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(lx - 16, ly - 20, 64, 44);
-
-    // Animated Pulsing Beacon atop monument
-    const pulse = 0.5 + 0.5 * Math.sin(this.tickCount * 0.1);
-    ctx.fillStyle = lm.color || '#38bdf8';
-    ctx.globalAlpha = 0.3 * pulse;
-    ctx.beginPath();
-    ctx.arc(lx + 16, ly - 16, 28, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1.0;
-
-    // Big Icon
-    ctx.font = '22px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(lm.symbol || '🏯', lx + 16, ly + 4);
-
-    // Floating Golden Title Banner
-    ctx.font = 'bold 9px monospace';
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-    ctx.fillRect(lx - 24, ly - 32, 80, 12);
-    ctx.strokeStyle = lm.color || '#fbbf24';
-    ctx.strokeRect(lx - 24, ly - 32, 80, 12);
-    ctx.fillStyle = lm.color || '#fbbf24';
-    ctx.fillText(lm.name.substring(0, 7), lx + 16, ly - 24);
-
-    ctx.restore();
+    // Wooden handrails
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(px + 2, py, 3, this.tileSize);
+    ctx.fillRect(px + this.tileSize - 5, py, 3, this.tileSize);
   }
 
-  // Draw Local Specialty Production Factory / Workshop
-  renderSpecialtyFactory(ctx, sFac, tier) {
-    const fx = sFac.position.x * this.tileSize;
-    const fy = sFac.position.y * this.tileSize;
-
-    ctx.save();
-    // Factory Base & Brick Chimney
-    ctx.fillStyle = '#7c2d12'; // Red-brick factory
-    ctx.fillRect(fx - 4, fy - 16, 40, 48);
-    ctx.strokeStyle = '#ea580c';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(fx - 4, fy - 16, 40, 48);
-
-    // Chimney Stack
-    ctx.fillStyle = '#451a03';
-    ctx.fillRect(fx + 22, fy - 28, 8, 14);
-
-    // Billowing Smoke from Chimney (Animated)
-    const smokeShift = (this.tickCount * 0.1) % 8;
-    ctx.fillStyle = 'rgba(203, 213, 225, 0.5)';
-    ctx.beginPath();
-    ctx.arc(fx + 26 - smokeShift * 0.5, fy - 32 - smokeShift * 2, 4 + smokeShift * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Factory Gear / Product Icon
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🏭', fx + 14, fy + 8);
-
-    // Factory Master standing outside
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(fx + 10, fy + 18, 8, 6);
-    ctx.fillStyle = '#ea580c';
-    ctx.fillRect(fx + 8, fy + 24, 12, 8);
-
-    // Title Banner
-    ctx.font = 'bold 8px monospace';
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    ctx.fillRect(fx - 14, fy - 28, 60, 10);
-    ctx.strokeStyle = '#f97316';
-    ctx.strokeRect(fx - 14, fy - 28, 60, 10);
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillText(sFac.name.substring(0, 5), fx + 16, fy - 22);
-
-    ctx.restore();
-  }
-
-  // Draw Props & Street furniture: Streetlamps with lighting, Crates, Vending Machines, Campfire (7 Tiers)
-  renderTownProps(ctx, area, tier, minX, maxX, minY, maxY) {
-    const lampPositions = [
-      { x: 9, y: 7 }, { x: 15, y: 7 },
-      { x: 9, y: 13 }, { x: 15, y: 13 }
+  // Environment Props: Lush round trees, Central stone well, Flowerbeds
+  drawDq3EnvironmentProps(ctx, area, minX, maxX, minY, maxY, tier) {
+    // 1. Lush Round Trees (SFC DQ3 Iconic Shape)
+    const treePositions = [
+      { x: 2, y: 2 }, { x: 9, y: 2 }, { x: 14, y: 2 }, { x: 21, y: 2 },
+      { x: 2, y: 8 }, { x: 9, y: 8 }, { x: 14, y: 8 }, { x: 21, y: 8 },
+      { x: 2, y: 15 }, { x: 8, y: 15 }, { x: 15, y: 15 }, { x: 21, y: 15 }
     ];
 
-    // Streetlamps with glowing light cones (Lv 3 - 7)
-    if (tier >= 3) {
-      lampPositions.forEach(lp => {
-        if (lp.x < minX || lp.x > maxX || lp.y < minY || lp.y > maxY) return;
-        const lx = lp.x * this.tileSize;
-        const ly = lp.y * this.tileSize;
+    treePositions.forEach(tp => {
+      if (tp.x < minX || tp.x > maxX || tp.y < minY || tp.y > maxY) return;
+      const tx = tp.x * this.tileSize;
+      const ty = tp.y * this.tileSize;
+      this.drawDq3RoundTree(ctx, tx, ty);
+    });
 
-        ctx.save();
-        const glowGrad = ctx.createRadialGradient(lx + 16, ly + 16, 2, lx + 16, ly + 16, 36);
-        glowGrad.addColorStop(0, tier >= 6 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(251, 191, 36, 0.3)');
-        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = glowGrad;
-        ctx.beginPath();
-        ctx.arc(lx + 16, ly + 16, 36, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(lx + 14, ly + 10, 4, 18);
-        ctx.fillStyle = tier >= 6 ? '#38bdf8' : '#fbbf24';
-        ctx.fillRect(lx + 12, ly + 6, 8, 6);
-        ctx.restore();
-      });
+    // 2. Central Stone Well at Plaza (x: 12, y: 10)
+    const midX = Math.floor(area.width / 2);
+    const midY = Math.floor(area.height / 2);
+    if (midX >= minX && midX <= maxX && midY >= minY && midY <= maxY) {
+      const wx = midX * this.tileSize;
+      const wy = midY * this.tileSize;
+      this.drawDq3StoneWell(ctx, wx, wy);
     }
 
-    // Tier 1 & 2: Campfire or Torches in Plaza
-    if (tier <= 2) {
-      const cx = Math.floor(area.width / 2) * this.tileSize;
-      const cy = Math.floor(area.height / 2) * this.tileSize;
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx + 8, cy + 20, 16, 5);
-      const flameH = 8 + Math.sin(this.tickCount * 0.2) * 4;
-      ctx.fillStyle = '#f97316';
+    // 3. Colorful Flowerbeds (x: 8..9, y: 12..13)
+    const flowerX = 8 * this.tileSize;
+    const flowerY = 12 * this.tileSize;
+    this.drawDq3Flowerbed(ctx, flowerX, flowerY);
+  }
+
+  // Draw SFC DQ3 Signature Round Bush Tree
+  drawDq3RoundTree(ctx, tx, ty) {
+    ctx.save();
+    // Tree Trunk
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(tx + 12, ty + 18, 8, 12);
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(tx + 16, ty + 18, 4, 12);
+
+    // Tree Shadow on ground
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.arc(tx + 16, ty + 28, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Round Foliage Clustered Spheres (3 layers of green)
+    // Dark underside green
+    ctx.fillStyle = '#14532d';
+    ctx.beginPath();
+    ctx.arc(tx + 16, ty + 14, 13, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Vibrant body green
+    ctx.fillStyle = '#16a34a';
+    ctx.beginPath();
+    ctx.arc(tx + 14, ty + 12, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Top-left bright sunlight highlight (SFC Style)
+    ctx.fillStyle = '#86efac';
+    ctx.beginPath();
+    ctx.arc(tx + 11, ty + 8, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Draw SFC DQ3 Stone Well in Plaza
+  drawDq3StoneWell(ctx, wx, wy) {
+    ctx.save();
+    // Stone Rim Circle
+    ctx.fillStyle = '#64748b';
+    ctx.beginPath();
+    ctx.arc(wx + 16, wy + 16, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Well Rim Highlight
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Deep Well Water Inside
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(wx + 16, wy + 16, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(wx + 16, wy + 16, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wooden Roof & Pulley over Well
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(wx + 6, wy + 4, 3, 16);
+    ctx.fillRect(wx + 23, wy + 4, 3, 16);
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(wx + 4, wy + 2, 24, 4);
+    ctx.restore();
+  }
+
+  // Draw Flowerbed with Red, Pink & Yellow Blooms
+  drawDq3Flowerbed(ctx, fx, fy) {
+    ctx.save();
+    // Earth bed
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(fx + 2, fy + 2, 38, 22);
+    ctx.strokeStyle = '#b45309';
+    ctx.strokeRect(fx + 2, fy + 2, 38, 22);
+
+    // Flowers dots
+    const colors = ['#f43f5e', '#ec4899', '#fde047', '#a855f7', '#ffffff'];
+    for (let row = 0; row < 2; row++) {
+      for (let col = 0; col < 4; col++) {
+        const c = colors[(row * 4 + col) % colors.length];
+        const px = fx + 6 + col * 9;
+        const py = fy + 6 + row * 9;
+        ctx.fillStyle = c;
+        ctx.fillRect(px, py, 4, 4);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(px + 1, py + 1, 2, 2);
+      }
+    }
+    ctx.restore();
+  }
+
+  // --- INTERIOR ROOM CUTAWAYS (SFC DQ3 Architecture) ---
+
+  // 1. SFC DQ3 INN (Bedrooms, Red Carpet, Counter & Innkeeper)
+  drawDq3InnBuilding(ctx, startTileX, startTileY, w, h, tier) {
+    const bx = startTileX * this.tileSize;
+    const by = startTileY * this.tileSize;
+    const bw = w * this.tileSize;
+    const bh = h * this.tileSize;
+
+    ctx.save();
+
+    // Cutaway Thick Outer Stone Walls
+    this.drawRoomStonePerimeter(ctx, bx, by, bw, bh);
+
+    // Warm Wooden Plank Floor Inside
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(bx + 8, by + 8, bw - 16, bh - 16);
+    ctx.fillStyle = '#d97706';
+    for (let p = by + 8; p < by + bh - 16; p += 8) {
+      ctx.fillRect(bx + 8, p, bw - 16, 2);
+    }
+
+    // Rich Red / Crimson Carpet with Gold Border (Iconic DQ3 Inn)
+    const crpX = bx + 48;
+    const crpY = by + 24;
+    const crpW = 72;
+    const crpH = 56;
+    ctx.fillStyle = '#991b1b'; // Deep Crimson
+    ctx.fillRect(crpX, crpY, crpW, crpH);
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(crpX + 3, crpY + 3, crpW - 6, crpH - 6);
+    ctx.strokeStyle = '#fbbf24'; // Gold Trim
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(crpX + 2, crpY + 2, crpW - 4, crpH - 4);
+
+    // Beds with Pillows & White Sheets (2 Beds)
+    this.drawDq3Bed(ctx, bx + 16, by + 20);
+    this.drawDq3Bed(ctx, bx + 16, by + 56);
+
+    // Polished Wooden Service Counter
+    const cntX = bx + 70;
+    const cntY = by + 90;
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(cntX, cntY, 52, 16);
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(cntX + 2, cntY + 2, 48, 6);
+    ctx.strokeStyle = '#d97706';
+    ctx.strokeRect(cntX, cntY, 52, 16);
+
+    // Innkeeper standing behind counter
+    this.drawDq3InnkeeperSprite(ctx, cntX + 18, cntY - 14);
+
+    // INN Sign Board on front wall
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(bx + 18, by + bh - 10, 36, 14);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.strokeRect(bx + 18, by + bh - 10, 36, 14);
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = '#fbbf24';
+    ctx.textAlign = 'center';
+    ctx.fillText('🛌 宿屋', bx + 36, by + bh);
+
+    ctx.restore();
+  }
+
+  // Draw DQ3 Cozy Bed with Fluffy Pillow & Quilt
+  drawDq3Bed(ctx, bx, by) {
+    // Bed wooden frame
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(bx, by, 22, 32);
+
+    // White Fluffy Pillow
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(bx + 3, by + 3, 16, 7);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeRect(bx + 3, by + 3, 16, 7);
+
+    // Blue/Red Striped Quilt Sheet
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(bx + 3, by + 11, 16, 18);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(bx + 3, by + 11, 16, 3);
+    ctx.fillRect(bx + 3, by + 22, 16, 2);
+  }
+
+  // Draw Friendly Green-Tunic Innkeeper
+  drawDq3InnkeeperSprite(ctx, x, y) {
+    // Body (Green robe)
+    ctx.fillStyle = '#16a34a';
+    ctx.fillRect(x + 2, y + 8, 12, 12);
+    // Apron
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(x + 4, y + 10, 8, 10);
+    // Head & Smile
+    ctx.fillStyle = '#fed7aa';
+    ctx.fillRect(x + 3, y + 2, 10, 8);
+    // Green hat
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(x + 2, y, 12, 4);
+    // Eyes
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(x + 5, y + 5, 2, 2);
+    ctx.fillRect(x + 9, y + 5, 2, 2);
+  }
+
+  // 2. SFC DQ3 SHOP (Stone Floor, Wooden Counter, Wall Weapon Racks & Chests)
+  drawDq3ShopBuilding(ctx, startTileX, startTileY, w, h, tier) {
+    const bx = startTileX * this.tileSize;
+    const by = startTileY * this.tileSize;
+    const bw = w * this.tileSize;
+    const bh = h * this.tileSize;
+
+    ctx.save();
+
+    // Cutaway Thick Outer Stone Walls
+    this.drawRoomStonePerimeter(ctx, bx, by, bw, bh);
+
+    // Stone Tile Floor Inside
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(bx + 8, by + 8, bw - 16, bh - 16);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    for (let p = by + 8; p < by + bh - 16; p += 16) {
+      ctx.strokeRect(bx + 8, p, bw - 16, 16);
+    }
+
+    // Back Wall Weapon Display Racks (Swords, Round Shield, Spear)
+    this.drawDq3WeaponRack(ctx, bx + 24, by + 12);
+    this.drawDq3ShieldRack(ctx, bx + 80, by + 12);
+
+    // Wooden Sales Counter
+    const cntX = bx + 36;
+    const cntY = by + 68;
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(cntX, cntY, 68, 16);
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(cntX + 2, cntY + 2, 64, 6);
+    ctx.strokeStyle = '#d97706';
+    ctx.strokeRect(cntX, cntY, 68, 16);
+
+    // Merchant standing behind counter
+    this.drawDq3MerchantSprite(ctx, cntX + 26, cntY - 14);
+
+    // Treasure Chest & Supply Barrels in corner
+    this.drawDq3Chest(ctx, bx + 16, by + 90);
+    this.drawDq3Barrel(ctx, bx + 120, by + 90);
+
+    // Shop Sign Board on front wall
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(bx + 18, by + bh - 10, 36, 14);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.strokeRect(bx + 18, by + bh - 10, 36, 14);
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = '#fbbf24';
+    ctx.textAlign = 'center';
+    ctx.fillText('🛒 道具屋', bx + 36, by + bh);
+
+    ctx.restore();
+  }
+
+  // Draw Wall Weapon Rack (Sword & Spear)
+  drawDq3WeaponRack(ctx, x, y) {
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(x, y, 40, 18);
+    // Crossed Swords (Silver blade, gold hilt)
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(x + 8, y + 4, 24, 2);
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(x + 6, y + 3, 4, 4);
+    // Spear
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(x + 6, y + 10, 28, 2);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(x + 30, y + 9, 6, 4);
+  }
+
+  // Draw Wall Shield Rack (Gold & Blue Emblem Shield)
+  drawDq3ShieldRack(ctx, x, y) {
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(x, y, 26, 20);
+    // Round Blue Knight Shield
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(x + 13, y + 10, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fbbf24';
+    ctx.stroke();
+  }
+
+  // Draw Wooden Supply Barrel
+  drawDq3Barrel(ctx, x, y) {
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(x, y, 16, 18);
+    ctx.fillStyle = '#475569'; // Metal hoops
+    ctx.fillRect(x, y + 3, 16, 2);
+    ctx.fillRect(x, y + 13, 16, 2);
+  }
+
+  // Draw DQ3 Treasure Chest
+  drawDq3Chest(ctx, x, y) {
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(x, y, 18, 14);
+    ctx.fillStyle = '#fbbf24'; // Gold trim & lock
+    ctx.fillRect(x, y + 6, 18, 2);
+    ctx.fillRect(x + 7, y + 5, 4, 4);
+    ctx.strokeStyle = '#78350f';
+    ctx.strokeRect(x, y, 18, 14);
+  }
+
+  // Draw Merchant Sprite
+  drawDq3MerchantSprite(ctx, x, y) {
+    // Purple / Red merchant tunic
+    ctx.fillStyle = '#7c3aed';
+    ctx.fillRect(x + 2, y + 8, 12, 12);
+    // Head
+    ctx.fillStyle = '#fed7aa';
+    ctx.fillRect(x + 3, y + 2, 10, 8);
+    // Turban / Cap
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(x + 2, y, 12, 4);
+    // Mustache
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(x + 5, y + 7, 6, 2);
+  }
+
+  // Helper: Draw Thick Stone Perimeter for Rooms with Doorway Gap
+  drawRoomStonePerimeter(ctx, x, y, w, h) {
+    // Outer Stone Walls
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(x, y, w, h);
+
+    // Wall Top Brick Highlights
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(x, y, w, 4);
+    ctx.fillRect(x, y, 4, h);
+    ctx.fillRect(x + w - 4, y, 4, h);
+    ctx.fillRect(x, y + h - 6, w, 6);
+
+    // Inner Shadow (Room depth)
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(x + 4, y + 4, w - 8, 4);
+    ctx.fillRect(x + 4, y + 4, 4, h - 8);
+
+    // Doorway opening at bottom center
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(x + Math.floor(w / 2) - 8, y + h - 6, 16, 6);
+  }
+
+  // 3. SPECIALTY PRODUCTION FACTORY (Hearth, Chimney with billowing smoke, Anvil & Craftsman)
+  drawDq3SpecialtyFactoryBuilding(ctx, startTileX, startTileY, w, h, sFac, tier) {
+    const bx = startTileX * this.tileSize;
+    const by = startTileY * this.tileSize;
+    const bw = w * this.tileSize;
+    const bh = h * this.tileSize;
+
+    ctx.save();
+    this.drawRoomStonePerimeter(ctx, bx, by, bw, bh);
+
+    // Dark brick flooring
+    ctx.fillStyle = '#3f3f46';
+    ctx.fillRect(bx + 8, by + 8, bw - 16, bh - 16);
+
+    // Blazing Furnace / Forge Hearth
+    const frgX = bx + 24;
+    const frgY = by + 16;
+    ctx.fillStyle = '#991b1b';
+    ctx.fillRect(frgX, frgY, 28, 20);
+    ctx.strokeStyle = '#ea580c';
+    ctx.strokeRect(frgX, frgY, 28, 20);
+
+    // Animated Fire inside furnace
+    const flameH = 6 + Math.sin(this.tickCount * 0.25) * 3;
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(frgX + 6, frgY + 12 - flameH, 16, flameH);
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(frgX + 9, frgY + 14 - flameH * 0.6, 10, flameH * 0.6);
+
+    // Stone Chimney extending above roof with billowing smoke
+    ctx.fillStyle = '#52525b';
+    ctx.fillRect(bx + bw - 24, by - 14, 12, 20);
+    ctx.strokeStyle = '#27272a';
+    ctx.strokeRect(bx + bw - 24, by - 14, 12, 20);
+
+    // Soft Billowing Smoke (Animated)
+    const smokeS = (this.tickCount * 0.1) % 10;
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.65)';
+    ctx.beginPath();
+    ctx.arc(bx + bw - 18 - smokeS * 0.5, by - 20 - smokeS * 2, 4 + smokeS * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Anvil & Toolbox
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(bx + 80, by + 30, 16, 10);
+    ctx.fillRect(bx + 84, by + 40, 8, 6);
+
+    // Factory Master Craftsman NPC
+    ctx.fillStyle = '#ea580c';
+    ctx.fillRect(bx + 60, by + 56, 12, 12);
+    ctx.fillStyle = '#fed7aa';
+    ctx.fillRect(bx + 61, by + 50, 10, 8);
+
+    // Factory Name Sign
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(bx + 12, by + bh - 10, 48, 14);
+    ctx.strokeStyle = '#ea580c';
+    ctx.strokeRect(bx + 12, by + bh - 10, 48, 14);
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = '#fed7aa';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏭 ' + (sFac.specialtyName ? sFac.specialtyName.substring(0, 4) : '特産工房'), bx + 36, by + bh);
+
+    ctx.restore();
+  }
+
+  // 4. ROOFED ICONIC LANDMARK (SFC DQ3 Steep Tile Roof, Stained Glass & Belltower / Shrine)
+  drawDq3LandmarkRoofedBuilding(ctx, startTileX, startTileY, w, h, lm, tier) {
+    const bx = startTileX * this.tileSize;
+    const by = startTileY * this.tileSize;
+    const bw = w * this.tileSize;
+    const bh = h * this.tileSize;
+
+    ctx.save();
+    // Shadow under building
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(bx - 4, by + bh - 4, bw + 8, 12);
+
+    // Lower Building Stone Facade
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(bx + 8, by + 32, bw - 16, bh - 32);
+    ctx.strokeStyle = '#64748b';
+    ctx.strokeRect(bx + 8, by + 32, bw - 16, bh - 32);
+
+    // Triangular Steep Sloped Roof (SFC Church / Castle Roof style)
+    const roofColor = lm.color || '#b45309';
+    ctx.fillStyle = roofColor;
+    ctx.beginPath();
+    ctx.moveTo(bx + bw / 2, by - 6);
+    ctx.lineTo(bx - 4, by + 34);
+    ctx.lineTo(bx + bw + 4, by + 34);
+    ctx.closePath();
+    ctx.fill();
+
+    // Roof Tile Textures
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.lineWidth = 1.5;
+    for (let r = by + 6; r < by + 34; r += 7) {
       ctx.beginPath();
-      ctx.arc(cx + 16, cy + 16, flameH / 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(bx + (by + 34 - r) * 0.8, r);
+      ctx.lineTo(bx + bw - (by + 34 - r) * 0.8, r);
+      ctx.stroke();
     }
 
-    // Tier 4 - 7: Cyber Vending Machines & Logistics Crates
-    if (tier >= 4) {
-      const vx = 20 * this.tileSize;
-      const vy = 7 * this.tileSize;
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(vx + 6, vy + 4, 20, 24);
-      ctx.strokeStyle = tier >= 6 ? '#38bdf8' : '#0284c7';
-      ctx.strokeRect(vx + 6, vy + 4, 20, 24);
-      ctx.fillStyle = (this.tickCount % 40 < 20) ? '#38bdf8' : '#ec4899';
-      ctx.fillRect(vx + 9, vy + 8, 14, 8);
-    }
+    // Bell Tower / Shrine Spire / Torii Symbol atop roof
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(lm.symbol || '⛩️', bx + bw / 2, by + 12);
 
-    // Tier 6 & 7: Patrol Surveillance Drone hovering above town
-    if (tier >= 6) {
-      const droneX = 12 * this.tileSize + Math.sin(this.tickCount * 0.05) * 48;
-      const droneY = 3 * this.tileSize;
-      ctx.save();
-      ctx.fillStyle = '#38bdf8';
-      ctx.fillRect(droneX + 10, droneY + 6, 12, 6);
-      ctx.strokeStyle = '#ffffff';
-      ctx.strokeRect(droneX + 6, droneY + 4, 20, 3);
-      // Scan Laser Beam down to street
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
-      ctx.beginPath();
-      ctx.moveTo(droneX + 16, droneY + 12);
-      ctx.lineTo(droneX + 4, droneY + 36);
-      ctx.lineTo(droneX + 28, droneY + 36);
-      ctx.fill();
-      ctx.restore();
-    }
+    // Archway Wooden Doors
+    const drX = bx + bw / 2 - 12;
+    const drY = by + bh - 24;
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(drX, drY, 24, 24);
+    ctx.strokeStyle = '#d97706';
+    ctx.strokeRect(drX, drY, 24, 24);
+
+    // Stained Glass Windows (Colorful Lit Glass)
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(bx + 20, by + 40, 10, 16);
+    ctx.fillRect(bx + bw - 30, by + 40, 10, 16);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.strokeRect(bx + 20, by + 40, 10, 16);
+    ctx.strokeRect(bx + bw - 30, by + 40, 10, 16);
+
+    // Name Banner
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.fillRect(bx + bw / 2 - 40, by - 18, 80, 12);
+    ctx.strokeStyle = lm.color || '#fbbf24';
+    ctx.strokeRect(bx + bw / 2 - 40, by - 18, 80, 12);
+    ctx.fillStyle = lm.color || '#fbbf24';
+    ctx.fillText(lm.name.substring(0, 8), bx + bw / 2, by - 9);
+
+    ctx.restore();
   }
 
   // Draw Detailed Facility Building (Inn / Shop / Checkpoint)
