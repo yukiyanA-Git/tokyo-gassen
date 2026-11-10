@@ -1342,17 +1342,25 @@ class TokyoRpgEngine {
     ctx.restore();
   }
 
+  // Safely get population from game.regions (whether it is an Object or Array)
+  getRegionPopulation(regName) {
+    if (!this.game || !this.game.regions) return 160000;
+    try {
+      const regs = Array.isArray(this.game.regions) ? this.game.regions : Object.values(this.game.regions);
+      const matchR = regs.find(r => r && r.name && (r.name.includes(regName) || regName.includes(r.name)));
+      return matchR ? (matchR.population || 160000) : 160000;
+    } catch(e) {
+      return 160000;
+    }
+  }
+
   renderTown(ctx, camX, camY) {
     if (!this.currentArea) return;
     const area = this.currentArea;
 
     // Determine Town Tier (1 - 7) based on municipality population
     const regName = area.regionName || area.name;
-    let pop = 160000;
-    if (this.game && this.game.regions) {
-      const matchR = this.game.regions.find(r => r.name.includes(regName) || regName.includes(r.name));
-      if (matchR) pop = matchR.population;
-    }
+    const pop = this.getRegionPopulation(regName);
     const tier = this.getTownTier(pop);
 
     // VIEWPORT CULLING for Town
@@ -1941,11 +1949,7 @@ class TokyoRpgEngine {
       } else {
         const area = this.currentArea;
         const regName = area?.regionName || area?.name || '';
-        let pop = 160000;
-        if (this.game && this.game.regions) {
-          const matchR = this.game.regions.find(r => r.name.includes(regName) || regName.includes(r.name));
-          if (matchR) pop = matchR.population;
-        }
+        const pop = this.getRegionPopulation(regName);
         const tier = this.getTownTier(pop);
         const tierBadges = {
           1: { name: 'Lv.1 開拓前線キャンプ', color: '#94a3b8', stars: '★☆☆☆☆☆☆' },

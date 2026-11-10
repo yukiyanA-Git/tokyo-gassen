@@ -1674,7 +1674,8 @@ window.openRpgMode = function(regionId) {
             const lms = (typeof _getLandmarks === 'function') ? _getLandmarks() : (window.WORLD_MAP_LANDMARKS || []);
             const lm = lms.find(l => l.areaId.includes(regionId) || regionId.includes(l.areaId));
             const areaId = lm ? lm.areaId : `area_${regionId}`;
-            const regName = (game.regions && game.regions.find(r => r.id === regionId)?.name) || regionId;
+            const reg = game.regions && (game.regions[regionId] || (Array.isArray(game.regions) ? game.regions.find(r => r.id === regionId) : Object.values(game.regions).find(r => r.id === regionId)));
+            const regName = reg ? reg.name : regionId;
             targetArea = areas[areaId] || rpgEngine.generateFallbackTown(areaId, regName);
           }
         }
