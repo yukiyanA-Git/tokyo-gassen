@@ -1659,8 +1659,26 @@ window.openRpgMode = function(regionId) {
     }
 
     if (rpgEngine) {
+      // Force cancel any stuck transition state
+      rpgEngine.isTransitioning = false;
+      rpgEngine.fadeAlpha = 0;
+      rpgEngine.pendingTransition = null;
+
       if (regionId) {
-        window.openRpgModeForRegion(regionId);
+        const areas = (typeof _getAreas === 'function') ? _getAreas() : (window.AREAS_DATA || {});
+        let targetArea = areas[regionId];
+        if (!targetArea) {
+          if (regionId === 'chiyoda') targetArea = areas['chiyoda_citadel'] || areas['akihabara'];
+          else if (regionId === 'shinjuku') targetArea = areas['shinjuku_neon'];
+          else {
+            const lms = (typeof _getLandmarks === 'function') ? _getLandmarks() : (window.WORLD_MAP_LANDMARKS || []);
+            const lm = lms.find(l => l.areaId.includes(regionId) || regionId.includes(l.areaId));
+            const areaId = lm ? lm.areaId : `area_${regionId}`;
+            const regName = (game.regions && game.regions.find(r => r.id === regionId)?.name) || regionId;
+            targetArea = areas[areaId] || rpgEngine.generateFallbackTown(areaId, regName);
+          }
+        }
+        rpgEngine.transitionToTown(targetArea.areaId);
       } else {
         rpgEngine.transitionToOverworld();
       }
@@ -1684,21 +1702,7 @@ window.closeRpgMode = function() {
 };
 
 window.openRpgModeForRegion = function(regionId) {
-  window.openRpgMode();
-  if (rpgEngine) {
-    const targetArea = AREAS_DATA[regionId] || (regionId === 'chiyoda' ? AREAS_DATA['akihabara'] : (regionId === 'shinjuku' ? AREAS_DATA['shinjuku_neon'] : null));
-    if (targetArea) {
-      rpgEngine.transitionToTown(targetArea.areaId);
-    } else {
-      // Find matching landmark or procedural fallback
-      const lm = WORLD_MAP_LANDMARKS.find(l => l.areaId.includes(regionId) || regionId.includes(l.areaId));
-      if (lm) {
-        rpgEngine.transitionToTown(lm.areaId);
-      } else {
-        rpgEngine.transitionToOverworld();
-      }
-    }
-  }
+  window.openRpgMode(regionId);
 };
 
 function setupRpgTouchControls() {

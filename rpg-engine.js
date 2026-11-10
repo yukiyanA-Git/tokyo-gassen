@@ -185,6 +185,30 @@ class TokyoRpgEngine {
         }
       }
 
+      // 2.5 Did player click Landmark Building?
+      if (this.currentArea.landmarkBuilding) {
+        const lm = this.currentArea.landmarkBuilding;
+        if (Math.hypot(lm.position.x - targetTileX, lm.position.y - targetTileY) <= 1.8) {
+          this.walkToward(lm.position.x, lm.position.y);
+          if (Math.hypot(lm.position.x - p.x, lm.position.y - p.y) <= 3.2) {
+            this.interactInFront();
+          }
+          return;
+        }
+      }
+
+      // 2.6 Did player click Specialty Factory?
+      if (this.currentArea.specialtyFactory) {
+        const sFac = this.currentArea.specialtyFactory;
+        if (Math.hypot(sFac.position.x - targetTileX, sFac.position.y - targetTileY) <= 1.8) {
+          this.walkToward(sFac.position.x, sFac.position.y);
+          if (Math.hypot(sFac.position.x - p.x, sFac.position.y - p.y) <= 3.2) {
+            this.interactInFront();
+          }
+          return;
+        }
+      }
+
       // 3. Otherwise walk toward clicked tile
       this.walkToward(targetTileX, targetTileY);
     } else if (this.mode === 'overworld') {
@@ -332,6 +356,38 @@ class TokyoRpgEngine {
       if (fac) {
         this.triggerFacility(fac);
         return;
+      }
+
+      // 2.5 Check for Distinctive Landmark Building (North Center x: 10..14, y: 3..6)
+      if (this.currentArea.landmarkBuilding) {
+        const lm = this.currentArea.landmarkBuilding;
+        if (Math.hypot(lm.position.x - p.x, lm.position.y - p.y) <= 3.2) {
+          this.startNpcDialogue({
+            name: lm.name,
+            title: "【街の象徴・名所要塞】",
+            dialogues: [
+              lm.desc || `ここは【${this.currentArea.name}】を象徴する歴史的名所要塞だ。`,
+              `自治体の人口が増大し発展するにつれ、この名所も壮大な威容へと段階的にアップグレードしていくぞ！`
+            ]
+          });
+          return;
+        }
+      }
+
+      // 2.6 Check for Specialty Factory / Workshop (West Side x: 4, y: 11)
+      if (this.currentArea.specialtyFactory) {
+        const sFac = this.currentArea.specialtyFactory;
+        if (Math.hypot(sFac.position.x - p.x, sFac.position.y - p.y) <= 3.2) {
+          this.startNpcDialogue({
+            name: sFac.craftsman || "工房技師長",
+            title: `【特産品工房】${sFac.name}`,
+            dialogues: [
+              `ようこそ！ここは当自治体が誇る名物特産品【${sFac.specialtyName}】を生産する工房だ！`,
+              sFac.desc || "大局画面で人口と民意を高めてくれれば、毎月の物資生産量も飛躍的に増加するぜ！"
+            ]
+          });
+          return;
+        }
       }
 
       // 3. Fallback interaction feedback when pressing action key in empty space
@@ -614,16 +670,137 @@ class TokyoRpgEngine {
     }
   }
 
+  // Get Town Tier (1 - 7) based on population
+  getTownTier(pop) {
+    if (pop < 40000) return 1;       // Lv1: 開拓前線キャンプ
+    if (pop < 70000) return 2;       // Lv2: 復興集落・前哨砦
+    if (pop < 120000) return 3;      // Lv3: 小規模要塞宿場町
+    if (pop < 180000) return 4;      // Lv4: 地方中核城塞都市
+    if (pop < 260000) return 5;      // Lv5: 繁栄大都市
+    if (pop < 380000) return 6;      // Lv6: 超高度メガロポリス
+    return 7;                        // Lv7: 至高首都要塞
+  }
+
+  // Helper: Specialty & Landmark archetype for any Tokyo municipality
+  getSpecialtyForMunicipality(name) {
+    if (name.includes('練馬')) {
+      return {
+        landmark: { type: 'studio', name: '練馬アニメーション制作大本営', symbol: '🎬', color: '#ec4899', desc: '日本のアニメ文化発祥地。名作を生み出し続ける巨大作画スタジオ兼要塞。' },
+        factory: { name: '練馬バイオ農産プラント', specialtyName: '高純度バイオ練馬大根', specialtyItem: 'food_ration', craftsman: '所長・ネリマ', desc: 'バイオ技術で改良された伝統の練馬大根。兵のスタミナを驚異的に高める。' }
+      };
+    }
+    if (name.includes('世田谷')) {
+      return {
+        landmark: { type: 'mansion', name: '世田谷閑静邸宅自衛司令塔', symbol: '🏡', color: '#10b981', desc: '高級住宅街の重厚な邸宅を改装した、世田谷区自衛軍の中枢司令部。' },
+        factory: { name: '世田谷特級保存食工房', specialtyName: '世田谷長期備蓄レーション', specialtyItem: 'food_ration', craftsman: '料理長・セタガヤ', desc: '厳選された食材で作られた高級レーション。部隊の士気を大きく底上げする。' }
+      };
+    }
+    if (name.includes('大田') || name.includes('蒲田')) {
+      return {
+        landmark: { type: 'airport', name: '羽田航空管制塔・巨大ハンガー', symbol: '✈️', color: '#0284c7', desc: '東京湾を望む国際航空拠点。防衛用ドローンや輸送機の離着陸を統制する。' },
+        factory: { name: '蒲田精密機械削り出し工場', specialtyName: '超精密チタン削り出しギア', specialtyItem: 'junk_parts', craftsman: '親方・カマタ', desc: '職人の手でミクロン単位の精度に削り出された歯車。あらゆる兵器の精度を高める。' }
+      };
+    }
+    if (name.includes('墨田')) {
+      return {
+        landmark: { type: 'tower', name: 'スカイツリー電波塔要塞', symbol: '📡', color: '#38bdf8', desc: '地上634mから全東京の電波とレーザー照射を司る天空の観測塔。' },
+        factory: { name: '墨田金属加工・試作町工場', specialtyName: '超電導アンテナフレーム', specialtyItem: 'junk_parts', craftsman: '技師長・スミダ', desc: '軽量かつ超頑強な特殊合金フレーム。索敵装備の基幹部品。' }
+      };
+    }
+    if (name.includes('台東') || name.includes('浅草') || name.includes('上野')) {
+      return {
+        landmark: { type: 'shrine', name: '浅草寺・雷門大提灯・五重塔', symbol: '⛩️', color: '#ef4444', desc: '大提灯が迎える江戸の総鎮守。不屈の祈りが集まる聖域要塞。' },
+        factory: { name: '浅草伝統工芸・職人長屋', specialtyName: '浅草開運守護札', specialtyItem: 'faith_talisman', craftsman: '長屋頭・アサクサ', desc: '名僧の祈祷が込められた伝統の信仰符。部隊の災厄を払う。' }
+      };
+    }
+    if (name.includes('足立') || name.includes('千住')) {
+      return {
+        landmark: { type: 'bridge', name: '千住大橋防衛宿場・日光街道関所', symbol: '🌉', color: '#f59e0b', desc: '日光街道の要衝。荒川と隅田川を扼する堅牢な渡し場防衛陣地。' },
+        factory: { name: '足立鋼鉄リサイクル重工', specialtyName: '再生防弾装甲プレート', specialtyItem: 'item_repair_kit', craftsman: '溶接長・アダチ', desc: '廃鉄スクラップから精錬された強靭な装甲板。車両や拠点を守る。' }
+      };
+    }
+    if (name.includes('港') || name.includes('六本木')) {
+      return {
+        landmark: { type: 'tower', name: '東京タワー・六本木ヒルズ砦', symbol: '🗼', color: '#ef4444', desc: '夜空に赤く輝く東京の象徴。港湾コンツェルンの金融と電波の拠点。' },
+        factory: { name: '港湾超高密度バッテリープラント', specialtyName: '次世代リチウム電池セル', specialtyItem: 'battery_cell', craftsman: '技官・ミナト', desc: '湾岸のメガソーラーから生み出される高密度エネルギー。' }
+      };
+    }
+    if (name.includes('武蔵野') || name.includes('吉祥寺')) {
+      return {
+        landmark: { type: 'park', name: '井の頭公園大池・吉祥寺歓楽街', symbol: '🌳', color: '#10b981', desc: '豊かな緑と湧水を湛える憩いの地。ハモニカ横丁の活気が人を引き寄せる。' },
+        factory: { name: '武蔵野文化焙煎・情報集積所', specialtyName: '吉祥寺ハーブ珈琲', specialtyItem: 'item_neon_whiskey', craftsman: 'マスター・ムサシノ', desc: '芳醇な香りの特製珈琲。将兵の疲労を一瞬で吹き飛ばす。' }
+      };
+    }
+    if (name.includes('町田')) {
+      return {
+        landmark: { type: 'depot', name: '町田街道南東京物流ハブ', symbol: '📦', color: '#f97316', desc: '神奈川との境界に位置する一大補給集積所。物資の往来が絶えない。' },
+        factory: { name: '町田大型補給コンテナ基地', specialtyName: '緊急物資サプライコンテナ', specialtyItem: 'food_ration', craftsman: '配給官・マチダ', desc: '衣食住の全てが詰まった高規格コンテナ。前線への兵站の要。' }
+      };
+    }
+    if (name.includes('立川')) {
+      return {
+        landmark: { type: 'airport', name: '立川広域防災基地・航空滑走路', symbol: '🚁', color: '#0ea5e9', desc: '西東京の防空と救援を担う滑走路。ドローン部隊の整備中枢。' },
+        factory: { name: '立川ドローン組立プラント', specialtyName: '自律索敵ドローンコア', specialtyItem: 'item_emp_grenade', craftsman: '技師・タチカワ', desc: '最新鋭のAIジャイロを搭載した偵察ドローンの心臓部。' }
+      };
+    }
+    if (name.includes('八王子')) {
+      return {
+        landmark: { type: 'shrine', name: '高尾山大天狗神社・山岳社殿', symbol: '👺', color: '#10b981', desc: '天狗伝説の宿る霊峰。山岳戦の守護神が祀られる古社。' },
+        factory: { name: '多摩絹織物・防刃繊維機織り工房', specialtyName: '高圧山岳スタンロッド', specialtyItem: 'wpn_stun_rod', craftsman: '機織り長・オハナ', desc: '伝統の桑都の絹織物技術を応用した防弾・防刃マントと武具。' }
+      };
+    }
+    if (name.includes('奥多摩') || name.includes('青梅') || name.includes('あきる野') || name.includes('檜原')) {
+      return {
+        landmark: { type: 'dam_water', name: `${name}水力発電巨大ダム要塞`, symbol: '🌊', color: '#06b6d4', desc: '巨深な山あいにそびえる巨大水門と発電ダム。清純な水を都心へ供給する。' },
+        factory: { name: `${name}清流霊水・薬草精製所`, specialtyName: `${name}深山秘伝ナノ再生水`, specialtyItem: 'item_repair_kit', craftsman: '薬草師・レン', desc: '原生林の湧水から抽出された超回復薬。' }
+      };
+    }
+    if (name.includes('島') || name.includes('大島') || name.includes('八丈') || name.includes('小笠原')) {
+      return {
+        landmark: { type: 'port', name: `${name}海洋観測灯台・防空要塞`, symbol: '⚓', color: '#06b6d4', desc: '太平洋の荒波を見守る巨大灯台。黒潮の航路を守る海の要衝。' },
+        factory: { name: `${name}海洋深層水・濃縮精製所`, specialtyName: '海洋ミネラル抽出晶', specialtyItem: 'item_repair_kit', craftsman: '漁労長・トウショ', desc: '深海から汲み上げられた純度100%のミネラル塩晶。' }
+      };
+    }
+    if (name.includes('市') || name.includes('町') || name.includes('村')) {
+      return {
+        landmark: { type: 'shrine', name: `${name}総鎮守山岳神社・天守社殿`, symbol: '⛩️', color: '#10b981', desc: '古くからこの地を守護してきた地域の総鎮守。' },
+        factory: { name: `${name}地域資源・特産品加工所`, specialtyName: `${name}特製滋養丸`, specialtyItem: 'item_repair_kit', craftsman: '工房長・タマ', desc: '地元の特産資源を濃縮した滋養強壮薬。' }
+      };
+    }
+    return {
+      landmark: { type: 'castle', name: `${name}防衛区役所・中央司令塔`, symbol: '🏯', color: '#38bdf8', desc: '強固なコンクリート防壁に囲まれた自衛軍の中枢施設。' },
+      factory: { name: `${name}兵站補給・機械整備工場`, specialtyName: `${name}防衛合金パーツ`, specialtyItem: 'item_repair_kit', craftsman: '工廠長・トクブ', desc: '防衛隊の車両や装備を日夜修繕する中核工場。' }
+    };
+  }
+
   // --- TRANSITIONS ---
   generateFallbackTown(areaId, name) {
+    const spec = this.getSpecialtyForMunicipality(name);
     return {
       areaId: areaId,
       name: name,
-      dominantFaction: name,
+      regionName: name,
+      dominantFaction: `${name}自治軍`,
       currencyAccepted: ["standard_yen", "junk_parts"],
-      atmosphere: `${name}の城塞都市。防壁の内側には兵站拠点と物資集積所が広がる。`,
+      atmosphere: `${name}の城塞都市。防壁の内側には兵站拠点と【${spec.landmark.name}】がそびえる。`,
       width: 24,
       height: 18,
+      landmarkBuilding: {
+        type: spec.landmark.type,
+        name: spec.landmark.name,
+        symbol: spec.landmark.symbol,
+        color: spec.landmark.color,
+        desc: spec.landmark.desc,
+        position: { x: 12, y: 4 }
+      },
+      specialtyFactory: {
+        name: spec.factory.name,
+        specialtyItem: spec.factory.specialtyItem,
+        specialtyName: spec.factory.specialtyName,
+        craftsman: spec.factory.craftsman,
+        desc: spec.factory.desc,
+        position: { x: 4, y: 11 }
+      },
       facilities: [
         {
           id: `fac_${areaId}_inn`,
@@ -652,8 +829,8 @@ class TokyoRpgEngine {
           sprite: "npc_guard",
           position: { x: 12, y: 9 },
           dialogues: [
-            `ここは【${name}】だ。東京合戦の激戦地だが、内部は守備隊によって治安が保たれている。`,
-            "街道沿いには他の自治体要塞も点在している。装備と兵力を整えてから次の地へ進むといい。"
+            `ここは【${name}】だ。東京合戦の激戦地だが、中央の【${spec.landmark.name}】のもとで治安が保たれている。`,
+            `西側には特産品を作る【${spec.factory.name}】もあるぞ。立ち寄ってみるといい。`
           ]
         }
       ]
@@ -668,8 +845,19 @@ class TokyoRpgEngine {
       const name = landmark ? landmark.name : "独立城塞";
       area = this.generateFallbackTown(areaId, name);
     }
+    // Ensure landmark & specialty factory exist even if loaded from minimal JSON
+    if (!area.landmarkBuilding || !area.specialtyFactory) {
+      const spec = this.getSpecialtyForMunicipality(area.regionName || area.name);
+      if (!area.landmarkBuilding) {
+        area.landmarkBuilding = { ...spec.landmark, position: { x: 12, y: 4 } };
+      }
+      if (!area.specialtyFactory) {
+        area.specialtyFactory = { ...spec.factory, position: { x: 4, y: 11 } };
+      }
+    }
 
     this.isTransitioning = true;
+    this.fadeAlpha = 0;
     this.pendingTransition = () => {
       this.mode = 'town';
       this.currentAreaId = areaId;
@@ -685,8 +873,18 @@ class TokyoRpgEngine {
   transitionToOverworld() {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.fadeAlpha = 0;
     this.pendingTransition = () => {
       this.mode = 'overworld';
+      // If returning from town, place safely 1 step south of the town landmark
+      if (this.currentAreaId) {
+        const lm = _getLandmarks().find(l => l.areaId === this.currentAreaId);
+        if (lm) {
+          this.overworldPos.x = lm.x;
+          this.overworldPos.y = Math.min(_getH() - 1, lm.y + 1);
+          this.overworldPos.dir = 'down';
+        }
+      }
       this.currentAreaId = null;
       this.currentArea = null;
       this.updateHUD();
@@ -1095,23 +1293,67 @@ class TokyoRpgEngine {
         ctx.fillStyle = '#ffffff';
         ctx.fillText(l.name.substring(0, 5), lx + this.tileSize / 2, ly - 7);
       });
+
+    // Golden Rule #1: Distant Epic Landmarks visible in horizon sky (Shinjuku Searchlights, Skytree, Tokyo Tower)
+    this.renderHorizonLandmarks(ctx);
+  }
+
+  // Draw Distant Horizon Visuals (Searchlight Beams & Tower Silhouettes)
+  renderHorizonLandmarks(ctx) {
+    ctx.save();
+    // 1. Shinjuku & Chiyoda Citadel Searchlight Beams shooting up into night sky
+    const beamAngle = Math.sin(this.tickCount * 0.02) * 0.35;
+    const tochoX = 50 * this.tileSize;
+    const tochoY = 22 * this.tileSize;
+
+    ctx.save();
+    ctx.translate(tochoX, tochoY);
+    ctx.rotate(beamAngle);
+    const beamGrad = ctx.createLinearGradient(0, 0, 0, -320);
+    beamGrad.addColorStop(0, 'rgba(56, 189, 248, 0.45)');
+    beamGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(-6, 0);
+    ctx.lineTo(-24, -320);
+    ctx.lineTo(24, -320);
+    ctx.lineTo(6, 0);
+    ctx.fill();
+    ctx.restore();
+
+    // 2. Tokyo Tower Red Beacon Pillar
+    const towerX = 48 * this.tileSize;
+    const towerY = 26 * this.tileSize;
+    const redGlow = 0.5 + 0.5 * Math.sin(this.tickCount * 0.08);
+    const redGrad = ctx.createLinearGradient(0, 0, 0, -260);
+    redGrad.addColorStop(0, `rgba(239, 68, 68, ${0.4 * redGlow})`);
+    redGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    ctx.save();
+    ctx.translate(towerX, towerY);
+    ctx.fillStyle = redGrad;
+    ctx.beginPath();
+    ctx.moveTo(-4, 0);
+    ctx.lineTo(-18, -260);
+    ctx.lineTo(18, -260);
+    ctx.lineTo(4, 0);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
   }
 
   renderTown(ctx, camX, camY) {
     if (!this.currentArea) return;
     const area = this.currentArea;
 
-    // Determine Town Tier based on municipality population
+    // Determine Town Tier (1 - 7) based on municipality population
     const regName = area.regionName || area.name;
     let pop = 160000;
     if (this.game && this.game.regions) {
       const matchR = this.game.regions.find(r => r.name.includes(regName) || regName.includes(r.name));
       if (matchR) pop = matchR.population;
     }
-    // Tier 1: pop < 80,000 (Small outpost/frontier)
-    // Tier 2: 80,000 <= pop < 250,000 (Medium fortress town)
-    // Tier 3: pop >= 250,000 (Cyber neon metropolis: Shinjuku, Setagaya, Ota, Nerima etc.)
-    const tier = pop >= 250000 ? 3 : (pop >= 80000 ? 2 : 1);
+    const tier = this.getTownTier(pop);
 
     // VIEWPORT CULLING for Town
     const minTileX = Math.max(0, Math.floor((-camX) / this.tileSize) - 1);
@@ -1122,7 +1364,7 @@ class TokyoRpgEngine {
     const midX = Math.floor(area.width / 2);
     const midY = Math.floor(area.height / 2);
 
-    // 1. Draw Floor, Paved Boulevards & City Walls
+    // 1. Draw Ground Floor & High-Density Backdrop Cityscape (Golden Rule #2 & #5)
     for (let y = minTileY; y <= maxTileY; y++) {
       for (let x = minTileX; x <= maxTileX; x++) {
         const px = x * this.tileSize;
@@ -1131,65 +1373,54 @@ class TokyoRpgEngine {
         const isWall = (x === 0 || x === area.width - 1 || y === 0 || (y === area.height - 1 && (x < midX - 1 || x > midX + 1)));
 
         if (isWall) {
-          // Perimeter Fortress Wall
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(px, py, this.tileSize, this.tileSize);
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(px + 2, py + 2, this.tileSize - 4, this.tileSize - 4);
-          ctx.strokeStyle = tier === 3 ? '#0284c7' : '#334155';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(px + 3, py + 3, this.tileSize - 6, this.tileSize - 6);
-
-          // Neon strip along top of wall in metropolis
-          if (tier === 3 && y === 0) {
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillRect(px, py + this.tileSize - 2, this.tileSize, 2);
-          }
+          // Backdrop Skyscraper Wall with glowing windows, neon cables & AC units
+          this.renderBackdropBuildingTile(ctx, px, py, x, y, tier);
         } else {
-          // Main Boulevard (Crossroad) & Central Plaza
+          // Walkable Roads & Central Plaza
           const isMainStreetX = (x >= midX - 1 && x <= midX + 1);
           const isMainStreetY = (y >= midY - 1 && y <= midY + 1);
           const isPlaza = (Math.abs(x - midX) <= 3 && Math.abs(y - midY) <= 3);
 
           if (isPlaza) {
-            // Central Plaza: Paved Polished Stone
-            ctx.fillStyle = tier === 3 ? '#1e293b' : (tier === 2 ? '#334155' : '#3f3f46');
+            // Central Plaza: Paved Stone with Ornamentation
+            ctx.fillStyle = tier >= 6 ? '#1e293b' : (tier >= 4 ? '#334155' : (tier >= 2 ? '#475569' : '#78350f'));
             ctx.fillRect(px, py, this.tileSize, this.tileSize);
-            ctx.strokeStyle = tier === 3 ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.08)';
+            ctx.strokeStyle = tier >= 5 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(255, 255, 255, 0.12)';
             ctx.strokeRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
 
-            // Plaza Center Ornament
+            // Plaza Center Emblem / Fountain / Monument
             if (x === midX && y === midY) {
-              ctx.fillStyle = tier === 3 ? '#0284c7' : '#d97706';
+              const coreColor = tier >= 6 ? '#38bdf8' : (tier >= 4 ? '#fbbf24' : '#f97316');
+              ctx.fillStyle = coreColor;
               ctx.beginPath();
-              ctx.arc(px + this.tileSize / 2, py + this.tileSize / 2, 8, 0, Math.PI * 2);
+              ctx.arc(px + this.tileSize / 2, py + this.tileSize / 2, 7, 0, Math.PI * 2);
               ctx.fill();
             }
           } else if (isMainStreetX || isMainStreetY) {
-            // Paved Stone Road
-            ctx.fillStyle = tier === 3 ? '#0f172a' : '#1e293b';
+            // Main Boulevard: Clear Paved Stone / Cyber Light Rails
+            ctx.fillStyle = tier >= 6 ? '#0f172a' : (tier >= 3 ? '#1e293b' : (tier === 2 ? '#3f3f46' : '#92400e'));
             ctx.fillRect(px, py, this.tileSize, this.tileSize);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.strokeStyle = tier >= 5 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.06)';
             ctx.strokeRect(px, py, this.tileSize, this.tileSize);
 
-            // Cyberpunk road dividing line
-            if (tier === 3 && (x === midX || y === midY)) {
-              ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+            // Center Road Stripes
+            if (tier >= 4 && (x === midX || y === midY)) {
+              ctx.fillStyle = tier >= 6 ? 'rgba(56, 189, 248, 0.45)' : 'rgba(251, 191, 36, 0.35)';
               if (x === midX) ctx.fillRect(px + this.tileSize / 2 - 1, py, 2, this.tileSize);
               if (y === midY) ctx.fillRect(px, py + this.tileSize / 2 - 1, this.tileSize, 2);
             }
           } else {
-            // Side streets & building grounds
-            ctx.fillStyle = tier === 1 ? '#1c1917' : '#0b0f19';
+            // Side Alleyways & Courtyards
+            ctx.fillStyle = tier >= 5 ? '#0b0f19' : (tier >= 3 ? '#1c1917' : '#451a03');
             ctx.fillRect(px, py, this.tileSize, this.tileSize);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
             ctx.strokeRect(px, py, this.tileSize, this.tileSize);
           }
         }
       }
     }
 
-    // 2. Render Street Props & Objects (Scales with Town Tier)
+    // 2. Render Street Props & Objects (Scales with 7 Tiers)
     this.renderTownProps(ctx, area, tier, minTileX, maxTileX, minTileY, maxTileY);
 
     // 3. Exit gate highlight at bottom
@@ -1202,20 +1433,26 @@ class TokyoRpgEngine {
     ctx.textAlign = 'center';
     ctx.fillText('▼ 出口 (広域マップへ) ▼', exitX + this.tileSize / 2, exitY + 20);
 
-    // 4. Render Facilities with Detailed Buildings (Roof, Walls, Windows & Counters)
+    // 4. Render Focused 4-5 Enterable Key Facilities (Golden Rule #2)
     (area.facilities || []).forEach(fac => {
       this.renderDetailedFacility(ctx, fac, tier);
     });
 
-    // 5. Render Core NPCs
+    // 5. Render Distinctive Municipality Landmark (Golden Rule #1 & #3)
+    if (area.landmarkBuilding) {
+      this.renderLandmarkBuilding(ctx, area.landmarkBuilding, tier);
+    }
+
+    // 6. Render Local Specialty Production Factory (Specialty Economic Hub)
+    if (area.specialtyFactory) {
+      this.renderSpecialtyFactory(ctx, area.specialtyFactory, tier);
+    }
+
+    // 7. Render Core NPCs
     (area.npcs || []).forEach(npc => {
       const nx = npc.position.x * this.tileSize;
       const ny = npc.position.y * this.tileSize;
-
-      // Draw NPC Sprite
       this.renderNpcSprite(ctx, nx, ny, npc.sprite);
-
-      // Floating NPC Name banner
       ctx.font = 'bold 9px monospace';
       ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
       ctx.fillRect(nx - 12, ny - 11, 56, 11);
@@ -1224,85 +1461,200 @@ class TokyoRpgEngine {
       ctx.fillText(npc.name.substring(0, 5), nx + this.tileSize / 2, ny - 5);
     });
 
-    // 6. Render Dynamic Wandering Citizens (Populated according to Tier)
+    // 8. Render Dynamic Citizens (Scaled 1 - 7 based on Tier)
     this.renderDynamicCitizens(ctx, area, tier);
   }
 
-  // Draw Props & Street furniture: Streetlamps with lighting, Crates, Vending Machines, Campfire
+  // Draw Dense Backdrop Buildings (80% non-enterable aesthetic backdrop with neon & windows)
+  renderBackdropBuildingTile(ctx, px, py, x, y, tier) {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(px, py, this.tileSize, this.tileSize);
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
+
+    // Glowing windows in buildings
+    const seed = (x * 7 + y * 13 + this.tickCount * 0.01) % 1;
+    if (seed > 0.4) {
+      ctx.fillStyle = tier >= 5 ? '#38bdf8' : '#fef08a';
+      ctx.fillRect(px + 4, py + 4, 6, 6);
+      ctx.fillRect(px + 14, py + 4, 6, 6);
+      ctx.fillRect(px + 4, py + 14, 6, 6);
+      ctx.fillRect(px + 14, py + 14, 6, 6);
+    }
+
+    // Neon cables & pipes running along rooftops
+    if (y === 0) {
+      const neonColor = tier >= 6 ? '#38bdf8' : (tier >= 4 ? '#ec4899' : '#f59e0b');
+      ctx.fillStyle = neonColor;
+      ctx.fillRect(px, py + this.tileSize - 3, this.tileSize, 2);
+    }
+  }
+
+  // Draw Distinctive Municipality Landmark (Tokyo Tower, Sensoji, Shinjuku Arch, Anime Studio etc.)
+  renderLandmarkBuilding(ctx, lm, tier) {
+    const lx = lm.position.x * this.tileSize;
+    const ly = lm.position.y * this.tileSize;
+
+    ctx.save();
+    // Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillRect(lx - 20, ly + 20, 72, 12);
+
+    // Multi-tile Monumental Base
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(lx - 16, ly - 20, 64, 44);
+    ctx.strokeStyle = lm.color || '#fbbf24';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(lx - 16, ly - 20, 64, 44);
+
+    // Animated Pulsing Beacon atop monument
+    const pulse = 0.5 + 0.5 * Math.sin(this.tickCount * 0.1);
+    ctx.fillStyle = lm.color || '#38bdf8';
+    ctx.globalAlpha = 0.3 * pulse;
+    ctx.beginPath();
+    ctx.arc(lx + 16, ly - 16, 28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+
+    // Big Icon
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(lm.symbol || '🏯', lx + 16, ly + 4);
+
+    // Floating Golden Title Banner
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.fillRect(lx - 24, ly - 32, 80, 12);
+    ctx.strokeStyle = lm.color || '#fbbf24';
+    ctx.strokeRect(lx - 24, ly - 32, 80, 12);
+    ctx.fillStyle = lm.color || '#fbbf24';
+    ctx.fillText(lm.name.substring(0, 7), lx + 16, ly - 24);
+
+    ctx.restore();
+  }
+
+  // Draw Local Specialty Production Factory / Workshop
+  renderSpecialtyFactory(ctx, sFac, tier) {
+    const fx = sFac.position.x * this.tileSize;
+    const fy = sFac.position.y * this.tileSize;
+
+    ctx.save();
+    // Factory Base & Brick Chimney
+    ctx.fillStyle = '#7c2d12'; // Red-brick factory
+    ctx.fillRect(fx - 4, fy - 16, 40, 48);
+    ctx.strokeStyle = '#ea580c';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(fx - 4, fy - 16, 40, 48);
+
+    // Chimney Stack
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(fx + 22, fy - 28, 8, 14);
+
+    // Billowing Smoke from Chimney (Animated)
+    const smokeShift = (this.tickCount * 0.1) % 8;
+    ctx.fillStyle = 'rgba(203, 213, 225, 0.5)';
+    ctx.beginPath();
+    ctx.arc(fx + 26 - smokeShift * 0.5, fy - 32 - smokeShift * 2, 4 + smokeShift * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Factory Gear / Product Icon
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🏭', fx + 14, fy + 8);
+
+    // Factory Master standing outside
+    ctx.fillStyle = '#fed7aa';
+    ctx.fillRect(fx + 10, fy + 18, 8, 6);
+    ctx.fillStyle = '#ea580c';
+    ctx.fillRect(fx + 8, fy + 24, 12, 8);
+
+    // Title Banner
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    ctx.fillRect(fx - 14, fy - 28, 60, 10);
+    ctx.strokeStyle = '#f97316';
+    ctx.strokeRect(fx - 14, fy - 28, 60, 10);
+    ctx.fillStyle = '#fed7aa';
+    ctx.fillText(sFac.name.substring(0, 5), fx + 16, fy - 22);
+
+    ctx.restore();
+  }
+
+  // Draw Props & Street furniture: Streetlamps with lighting, Crates, Vending Machines, Campfire (7 Tiers)
   renderTownProps(ctx, area, tier, minX, maxX, minY, maxY) {
     const lampPositions = [
       { x: 9, y: 7 }, { x: 15, y: 7 },
       { x: 9, y: 13 }, { x: 15, y: 13 }
     ];
 
-    // Streetlamps with glowing light cones
-    lampPositions.forEach(lp => {
-      if (lp.x < minX || lp.x > maxX || lp.y < minY || lp.y > maxY) return;
-      const lx = lp.x * this.tileSize;
-      const ly = lp.y * this.tileSize;
+    // Streetlamps with glowing light cones (Lv 3 - 7)
+    if (tier >= 3) {
+      lampPositions.forEach(lp => {
+        if (lp.x < minX || lp.x > maxX || lp.y < minY || lp.y > maxY) return;
+        const lx = lp.x * this.tileSize;
+        const ly = lp.y * this.tileSize;
 
-      // Light radial glow on ground
-      ctx.save();
-      const glowGrad = ctx.createRadialGradient(lx + 16, ly + 16, 2, lx + 16, ly + 16, 36);
-      glowGrad.addColorStop(0, tier === 3 ? 'rgba(56, 189, 248, 0.28)' : 'rgba(251, 191, 36, 0.25)');
-      glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = glowGrad;
-      ctx.beginPath();
-      ctx.arc(lx + 16, ly + 16, 36, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.save();
+        const glowGrad = ctx.createRadialGradient(lx + 16, ly + 16, 2, lx + 16, ly + 16, 36);
+        glowGrad.addColorStop(0, tier >= 6 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(251, 191, 36, 0.3)');
+        glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath();
+        ctx.arc(lx + 16, ly + 16, 36, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Lamp Post
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(lx + 14, ly + 10, 4, 18);
-      // Lamp Head
-      ctx.fillStyle = tier === 3 ? '#38bdf8' : '#fbbf24';
-      ctx.fillRect(lx + 12, ly + 6, 8, 6);
-      ctx.restore();
-    });
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(lx + 14, ly + 10, 4, 18);
+        ctx.fillStyle = tier >= 6 ? '#38bdf8' : '#fbbf24';
+        ctx.fillRect(lx + 12, ly + 6, 8, 6);
+        ctx.restore();
+      });
+    }
 
-    // Tier 1: Campfire in Plaza center
-    if (tier === 1) {
+    // Tier 1 & 2: Campfire or Torches in Plaza
+    if (tier <= 2) {
       const cx = Math.floor(area.width / 2) * this.tileSize;
       const cy = Math.floor(area.height / 2) * this.tileSize;
-      // Logs
       ctx.fillStyle = '#78350f';
       ctx.fillRect(cx + 8, cy + 20, 16, 5);
-      // Flickering Flame
       const flameH = 8 + Math.sin(this.tickCount * 0.2) * 4;
       ctx.fillStyle = '#f97316';
       ctx.beginPath();
       ctx.arc(cx + 16, cy + 16, flameH / 2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#fde047';
-      ctx.beginPath();
-      ctx.arc(cx + 16, cy + 18, (flameH / 2) * 0.6, 0, Math.PI * 2);
-      ctx.fill();
     }
 
-    // Tier 2 & 3: Crates, Supply Barrels & Cyber Vending Machine
-    if (tier >= 2) {
-      // Supply Crates at (4, 10)
-      const cx = 4 * this.tileSize;
-      const cy = 10 * this.tileSize;
-      ctx.fillStyle = '#92400e';
-      ctx.fillRect(cx + 4, cy + 8, 20, 20);
-      ctx.strokeStyle = '#b45309';
-      ctx.strokeRect(cx + 5, cy + 9, 18, 18);
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx + 10, cy + 2, 16, 12);
-
-      // Cyber Vending Machine at (20, 10)
+    // Tier 4 - 7: Cyber Vending Machines & Logistics Crates
+    if (tier >= 4) {
       const vx = 20 * this.tileSize;
-      const vy = 10 * this.tileSize;
+      const vy = 7 * this.tileSize;
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(vx + 6, vy + 4, 20, 24);
-      ctx.strokeStyle = '#0284c7';
+      ctx.strokeStyle = tier >= 6 ? '#38bdf8' : '#0284c7';
       ctx.strokeRect(vx + 6, vy + 4, 20, 24);
-      // Glowing Dispenser Screen
       ctx.fillStyle = (this.tickCount % 40 < 20) ? '#38bdf8' : '#ec4899';
       ctx.fillRect(vx + 9, vy + 8, 14, 8);
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(vx + 10, vy + 20, 12, 5);
+    }
+
+    // Tier 6 & 7: Patrol Surveillance Drone hovering above town
+    if (tier >= 6) {
+      const droneX = 12 * this.tileSize + Math.sin(this.tickCount * 0.05) * 48;
+      const droneY = 3 * this.tileSize;
+      ctx.save();
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(droneX + 10, droneY + 6, 12, 6);
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(droneX + 6, droneY + 4, 20, 3);
+      // Scan Laser Beam down to street
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+      ctx.beginPath();
+      ctx.moveTo(droneX + 16, droneY + 12);
+      ctx.lineTo(droneX + 4, droneY + 36);
+      ctx.lineTo(droneX + 28, droneY + 36);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
@@ -1594,21 +1946,40 @@ class TokyoRpgEngine {
           const matchR = this.game.regions.find(r => r.name.includes(regName) || regName.includes(r.name));
           if (matchR) pop = matchR.population;
         }
-        const tier = pop >= 250000 ? 3 : (pop >= 80000 ? 2 : 1);
-        const tierLabels = {
-          1: '⭐ 辺境前線基地',
-          2: '⭐⭐ 地方中核要塞',
-          3: '⭐⭐⭐ 超巨大ネオン要塞都市'
+        const tier = this.getTownTier(pop);
+        const tierBadges = {
+          1: { name: 'Lv.1 開拓前線キャンプ', color: '#94a3b8', stars: '★☆☆☆☆☆☆' },
+          2: { name: 'Lv.2 復興集落・前哨砦', color: '#a3e635', stars: '★★☆☆☆☆☆' },
+          3: { name: 'Lv.3 小規模要塞宿場町', color: '#22c55e', stars: '★★★☆☆☆☆' },
+          4: { name: 'Lv.4 地方中核城塞都市', color: '#38bdf8', stars: '★★★★☆☆☆' },
+          5: { name: 'Lv.5 繁栄大都市', color: '#818cf8', stars: '★★★★★☆☆' },
+          6: { name: 'Lv.6 超高度メガロポリス', color: '#c084fc', stars: '★★★★★★☆' },
+          7: { name: 'Lv.7 至高首都要塞', color: '#fbbf24', stars: '★★★★★★★' }
         };
-        const tierColor = tier === 3 ? '#38bdf8' : (tier === 2 ? '#fbbf24' : '#a3e635');
-        const tierBadge = `<span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(0,0,0,0.4); color:${tierColor}; margin-left:8px; border:1px solid ${tierColor};">${tierLabels[tier]} (人口: ${(pop/10000).toFixed(1)}万人)</span>`;
+        const tInfo = tierBadges[tier] || tierBadges[4];
+        const tierBadge = `<span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(0,0,0,0.5); color:${tInfo.color}; margin-left:8px; border:1px solid ${tInfo.color};">${tInfo.name} [${tInfo.stars}] (人口: ${(pop/10000).toFixed(1)}万人)</span>`;
         locElem.innerHTML = `🏯 ${area?.name || '拠点'} ${tierBadge}`;
       }
     }
+
     if (atmoElem) {
-      atmoElem.textContent = this.mode === 'overworld' 
-        ? '大東京の荒野、首都高の残骸、そして点在する53の独立城塞都市群。' 
-        : (this.currentArea?.atmosphere || '');
+      if (this.mode === 'overworld') {
+        atmoElem.textContent = '大東京の荒野、首都高の残骸、そして点在する53の独立城塞都市群。';
+      } else {
+        // Distinctive Town Rule / Taboo (Golden Rule #3)
+        const area = this.currentArea;
+        let ruleText = "【通常秩序】旧紙幣と物資の交換が推奨されている。";
+        const aName = area?.name || '';
+        if (aName.includes('秋葉原')) ruleText = "⚠️【強電磁波領域】電子・プラズマ兵器のみ稼働可能。ジャンク部品が法定通貨。";
+        else if (aName.includes('新宿')) ruleText = "🏮【夜間歓楽令】軍資金と旧紙幣がすべての取引を支配。夜の動員力は東京一。";
+        else if (aName.includes('渋谷')) ruleText = "📡【電脳スクランブル】情報屋の暗号解読で裏ルートが開通する。";
+        else if (aName.includes('銀座')) ruleText = "🏦【富裕審査】旧紙幣高額取引のみ許可。超一級装備と金塊が流通。";
+        else if (aName.includes('浅草')) ruleText = "⛩️【機械禁忌】信仰符（お札）の霊力加護が必須。伝統工芸品が重宝される。";
+        else if (aName.includes('千代田')) ruleText = "🏰【都庁直轄統制】通行許可証の検問が厳格。軍規違反者は即時拘束。";
+        else if (aName.includes('八王子') || aName.includes('奥多摩')) ruleText = "🌲【山岳配給制】食糧配給切符による物資交換。険しい山河が外敵を阻む。";
+
+        atmoElem.innerHTML = `<span style="color:#fbbf24; font-weight:bold;">${ruleText}</span> — <span style="color:#94a3b8;">${area?.atmosphere || ''}</span>`;
+      }
     }
 
     if (curElem) {

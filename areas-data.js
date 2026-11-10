@@ -12,6 +12,20 @@ const AREAS_DATA = {
     "width": 24,
     "height": 18,
     "worldPosition": { "x": 19, "y": 11 }, // World map coordinates
+    "landmarkBuilding": {
+      "type": "tower",
+      "name": "ラジオ会館巨大電子要塞",
+      "symbol": "⚡",
+      "color": "#fbbf24",
+      "position": { "x": 12, "y": 4 }
+    },
+    "specialtyFactory": {
+      "name": "秋葉原サイバー回路精密工房",
+      "specialtyItem": "item_repair_kit",
+      "specialtyName": "精密ナノリペアキット",
+      "craftsman": "主任技師・タツミ",
+      "position": { "x": 4, "y": 11 }
+    },
     "facilities": [
       {
         "id": "fac_aki_inn",
@@ -89,6 +103,20 @@ const AREAS_DATA = {
     "width": 24,
     "height": 18,
     "worldPosition": { "x": 14, "y": 11 },
+    "landmarkBuilding": {
+      "type": "shrine",
+      "name": "歌舞伎町ネオン大鳥居・不夜城タワー",
+      "symbol": "🏮",
+      "color": "#ec4899",
+      "position": { "x": 12, "y": 4 }
+    },
+    "specialtyFactory": {
+      "name": "不夜城特醸ネオン酒造所",
+      "specialtyItem": "item_neon_whiskey",
+      "specialtyName": "極彩ネオンウイスキー",
+      "craftsman": "蒸留長・キョウジ",
+      "position": { "x": 4, "y": 11 }
+    },
     "facilities": [
       {
         "id": "fac_sin_inn",
@@ -153,6 +181,20 @@ const AREAS_DATA = {
     "width": 24,
     "height": 18,
     "worldPosition": { "x": 50, "y": 22 },
+    "landmarkBuilding": {
+      "type": "castle",
+      "name": "都庁中央天守・皇居要塞",
+      "symbol": "🏯",
+      "color": "#38bdf8",
+      "position": { "x": 12, "y": 4 }
+    },
+    "specialtyFactory": {
+      "name": "国家中枢高精度電子工場",
+      "specialtyItem": "item_emp_grenade",
+      "specialtyName": "EMPパルスグレネード",
+      "craftsman": "技術技官・トウマ",
+      "position": { "x": 4, "y": 11 }
+    },
     "facilities": [
       {
         "id": "fac_chi_inn",
@@ -197,6 +239,20 @@ const AREAS_DATA = {
     "width": 24,
     "height": 18,
     "worldPosition": { "x": 44, "y": 26 },
+    "landmarkBuilding": {
+      "type": "cyber_screen",
+      "name": "SHIBUYA電脳スクランブルビジョン",
+      "symbol": "📡",
+      "color": "#a855f7",
+      "position": { "x": 12, "y": 4 }
+    },
+    "specialtyFactory": {
+      "name": "渋谷先端ARサイバー工房",
+      "specialtyItem": "wpn_cyber_dagger",
+      "specialtyName": "サイバー高周波ダガー",
+      "craftsman": "デザイナー・ユウキ",
+      "position": { "x": 4, "y": 11 }
+    },
     "facilities": [
       {
         "id": "fac_sby_inn",
@@ -241,6 +297,20 @@ const AREAS_DATA = {
     "width": 24,
     "height": 18,
     "worldPosition": { "x": 52, "y": 25 },
+    "landmarkBuilding": {
+      "type": "clock_tower",
+      "name": "銀座大時計塔・金塊保管庫",
+      "symbol": "🏦",
+      "color": "#f59e0b",
+      "position": { "x": 12, "y": 4 }
+    },
+    "specialtyFactory": {
+      "name": "銀座高品位宝飾・プラズマ研磨所",
+      "specialtyItem": "wpn_plasma_blade",
+      "specialtyName": "純金装飾プラズマブレード",
+      "craftsman": "マイスター・エンドウ",
+      "position": { "x": 4, "y": 11 }
+    },
     "facilities": [
       {
         "id": "fac_gnz_inn",
@@ -285,6 +355,20 @@ const AREAS_DATA = {
     "width": 24,
     "height": 18,
     "worldPosition": { "x": 18, "y": 27 },
+    "landmarkBuilding": {
+      "type": "shrine",
+      "name": "高尾山大天狗神社・山岳社殿",
+      "symbol": "👺",
+      "color": "#10b981",
+      "position": { "x": 12, "y": 4 }
+    },
+    "specialtyFactory": {
+      "name": "多摩絹織物・防刃繊維機織り工房",
+      "specialtyItem": "wpn_stun_rod",
+      "specialtyName": "高圧山岳スタンロッド",
+      "craftsman": "機織り長・オハナ",
+      "position": { "x": 4, "y": 11 }
+    },
     "facilities": [
       {
         "id": "fac_hac_inn",
@@ -329,6 +413,20 @@ const AREAS_DATA = {
     "width": 24,
     "height": 18,
     "worldPosition": { "x": 6, "y": 16 },
+    "landmarkBuilding": {
+      "type": "dam_water",
+      "name": "奥多摩水力発電巨大ダム要塞",
+      "symbol": "🌊",
+      "color": "#06b6d4",
+      "position": { "x": 12, "y": 4 }
+    },
+    "specialtyFactory": {
+      "name": "奥多摩源流生水・霊薬精製所",
+      "specialtyItem": "item_repair_kit",
+      "specialtyName": "深山秘伝ナノ再生水",
+      "craftsman": "薬草師・レン",
+      "position": { "x": 4, "y": 11 }
+    },
     "facilities": [
       {
         "id": "fac_oku_inn",
