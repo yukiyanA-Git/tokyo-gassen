@@ -2,6 +2,7 @@
 
 let game = null;
 let activeBattle = null;
+let rpgEngine = null;
 let selectedPartySlot = 0;
 let selectedEnemyTargetIndex = 0;
 let pendingSkillId = null;
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSvgMap();
   setupZoomAndPan();
   setupEventListeners();
+  setupRpgMode();
 
   // If save data exists in localStorage, offer to resume, otherwise show faction selection
   if (game.hasSaveData()) {
@@ -1563,4 +1565,197 @@ function showDefeatModal() {
     </div>
   `;
   modal.style.display = 'flex';
+}
+
+// ==========================================
+// DQ-STYLE 2D RPG MODE INITIALIZATION & INTEGRATION
+// ==========================================
+function setupRpgMode() {
+  const canvas = document.getElementById('rpg-canvas');
+  if (canvas && !rpgEngine && typeof TokyoRpgEngine !== 'undefined') {
+    try {
+      rpgEngine = new TokyoRpgEngine('rpg-canvas', game);
+    } catch(err) {
+      console.error('TokyoRpgEngine initialization failed:', err);
+    }
+  }
+
+  const btnToggleRpg = document.getElementById('btn-toggle-rpg');
+  if (btnToggleRpg) {
+    btnToggleRpg.addEventListener('click', () => {
+      window.openRpgMode();
+    });
+  }
+
+  const btnCloseRpg = document.getElementById('btn-close-rpg');
+  if (btnCloseRpg) {
+    btnCloseRpg.addEventListener('click', () => {
+      window.closeRpgMode();
+    });
+  }
+
+  const btnExplore = document.getElementById('btn-cmd-rpg-explore');
+  if (btnExplore) {
+    btnExplore.addEventListener('click', () => {
+      if (game.selectedRegion) {
+        window.openRpgMode(game.selectedRegion.id);
+      } else {
+        window.openRpgMode();
+      }
+    });
+  }
+
+  const btnInfiltrate = document.getElementById('btn-direct-rpg-infiltrate');
+  if (btnInfiltrate) {
+    btnInfiltrate.addEventListener('click', () => {
+      if (game.selectedRegion) {
+        window.openRpgMode(game.selectedRegion.id);
+      } else {
+        window.openRpgMode();
+      }
+    });
+  }
+
+  const btnCloseShop = document.getElementById('btn-close-rpg-shop');
+  if (btnCloseShop) {
+    btnCloseShop.addEventListener('click', () => {
+      if (rpgEngine) rpgEngine.closeShop();
+    });
+  }
+
+  const btnInventory = document.getElementById('btn-rpg-inventory');
+  if (btnInventory) {
+    btnInventory.addEventListener('click', () => {
+      if (rpgEngine) rpgEngine.toggleInventoryMenu();
+    });
+  }
+
+  const btnCloseMenu = document.getElementById('btn-close-rpg-menu');
+  if (btnCloseMenu) {
+    btnCloseMenu.addEventListener('click', () => {
+      const menu = document.getElementById('rpg-menu-window');
+      if (menu) menu.style.display = 'none';
+    });
+  }
+
+  setupRpgTouchControls();
+}
+
+window.openRpgMode = function(regionId) {
+  try {
+    const container = document.getElementById('rpg-viewport-container');
+    if (!container) {
+      alert('【エラー】RPG画面コンテナが見つかりません。');
+      return;
+    }
+    container.style.display = 'flex';
+    container.style.zIndex = '99999';
+
+    if (!rpgEngine && typeof TokyoRpgEngine !== 'undefined') {
+      const canvas = document.getElementById('rpg-canvas');
+      if (canvas) {
+        rpgEngine = new TokyoRpgEngine('rpg-canvas', game);
+      }
+    }
+
+    if (rpgEngine) {
+      if (regionId) {
+        window.openRpgModeForRegion(regionId);
+      } else {
+        rpgEngine.transitionToOverworld();
+      }
+      rpgEngine.updateHUD();
+    }
+  } catch(e) {
+    console.error('Error in openRpgMode:', e);
+    alert('RPGモードの起動中にエラーが発生しました: ' + e.message);
+  }
+};
+
+window.closeRpgMode = function() {
+  const container = document.getElementById('rpg-viewport-container');
+  if (container) {
+    container.style.display = 'none';
+  }
+  const shop = document.getElementById('rpg-shop-window');
+  if (shop) shop.style.display = 'none';
+  const menu = document.getElementById('rpg-menu-window');
+  if (menu) menu.style.display = 'none';
+};
+
+window.openRpgModeForRegion = function(regionId) {
+  window.openRpgMode();
+  if (rpgEngine) {
+    const targetArea = AREAS_DATA[regionId] || (regionId === 'chiyoda' ? AREAS_DATA['akihabara'] : (regionId === 'shinjuku' ? AREAS_DATA['shinjuku_neon'] : null));
+    if (targetArea) {
+      rpgEngine.transitionToTown(targetArea.areaId);
+    } else {
+      // Find matching landmark or procedural fallback
+      const lm = WORLD_MAP_LANDMARKS.find(l => l.areaId.includes(regionId) || regionId.includes(l.areaId));
+      if (lm) {
+        rpgEngine.transitionToTown(lm.areaId);
+      } else {
+        rpgEngine.transitionToOverworld();
+      }
+    }
+  }
+};
+
+function setupRpgTouchControls() {
+  const setTouch = (dir) => {
+    if (rpgEngine) {
+      rpgEngine.touchDir = dir;
+      rpgEngine.stepInDirection(dir);
+    }
+  };
+  const clearTouch = () => {
+    if (rpgEngine) rpgEngine.touchDir = null;
+  };
+
+  const bindTouch = (id, dir) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('mousedown', (e) => { e.preventDefault(); setTouch(dir); });
+    el.addEventListener('mouseup', (e) => { e.preventDefault(); clearTouch(); });
+    el.addEventListener('mouseleave', (e) => { e.preventDefault(); clearTouch(); });
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); setTouch(dir); }, { passive: false });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); clearTouch(); });
+    el.addEventListener('touchcancel', (e) => { e.preventDefault(); clearTouch(); });
+  };
+
+  bindTouch('touch-btn-up', 'up');
+  bindTouch('touch-btn-down', 'down');
+  bindTouch('touch-btn-left', 'left');
+  bindTouch('touch-btn-right', 'right');
+
+  const btnAction = document.getElementById('touch-btn-action');
+  if (btnAction) {
+    const triggerAct = (e) => {
+      e.preventDefault();
+      if (rpgEngine) rpgEngine.handleActionKey();
+    };
+    btnAction.addEventListener('click', triggerAct);
+    btnAction.addEventListener('touchstart', triggerAct, { passive: false });
+  }
+
+  const btnCancel = document.getElementById('touch-btn-cancel');
+  if (btnCancel) {
+    const triggerCancel = (e) => {
+      e.preventDefault();
+      if (rpgEngine) rpgEngine.handleCancelKey();
+    };
+    btnCancel.addEventListener('click', triggerCancel);
+    btnCancel.addEventListener('touchstart', triggerCancel, { passive: false });
+  }
+
+  // Toggle button for on-screen controller
+  const btnTogglePad = document.getElementById('btn-toggle-touch-pad');
+  if (btnTogglePad) {
+    btnTogglePad.addEventListener('click', () => {
+      const controls = document.getElementById('rpg-touch-controls');
+      if (!controls) return;
+      const isHidden = window.getComputedStyle(controls).display === 'none';
+      controls.style.display = isHidden ? 'flex' : 'none';
+    });
+  }
 }

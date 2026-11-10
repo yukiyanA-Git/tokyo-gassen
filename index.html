@@ -69,6 +69,7 @@
     <div class="controls-group">
       <button class="btn btn-party" id="btn-open-party">👥 部隊編成</button>
       <button class="btn" style="background: linear-gradient(135deg, #059669, #047857); border-color:#10b981;" id="btn-open-diplomacy">🤝 外交・特産品</button>
+      <button class="btn btn-turn" id="btn-toggle-rpg" onclick="window.openRpgMode()" style="background: linear-gradient(135deg, #0284c7, #0369a1); border-color:#38bdf8; box-shadow:0 0 12px rgba(56,189,248,0.4);" title="東京の広大マップや街を歩き回るDQ風RPGモード">🗺️ DQ風RPG出陣</button>
       <button class="btn" id="btn-save-game" title="ゲーム進行をローカル保存">💾 セーブ</button>
       <button class="btn" id="btn-load-game" title="保存データを再開">📂 ロード</button>
       <a class="btn" style="background: rgba(16, 185, 129, 0.2); border-color:#10b981; color:#6ee7b7; text-decoration:none;" href="https://yukiyanart-feedback-hub.web.app/?app_id=tokyo_gassen" target="_blank" rel="noopener noreferrer" title="Feedback & Release Hub 公式窓口を開く">💬 要望・不具合</a>
@@ -173,6 +174,10 @@
 
           <!-- Friendly Territory Controls -->
           <div id="friendly-actions" style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="cmd-btn" id="btn-cmd-rpg-explore" onclick="window.openRpgMode(game && game.selectedRegionId)" style="background: rgba(2, 132, 199, 0.25); border-color:#38bdf8;">
+              <span>🚶 この街をRPG探索（巡回）</span>
+              <span style="font-size: 11px; color:#38bdf8;">DQ風</span>
+            </button>
             <button class="cmd-btn" id="btn-cmd-develop">
               <span>🌾 商業開拓・投資</span>
               <span class="cost-tag">💰1,200</span>
@@ -201,6 +206,9 @@
 
           <!-- Hostile / Neutral Territory Controls -->
           <div id="hostile-actions" style="display: none; flex-direction: column; gap: 8px;">
+            <button class="cmd-btn" id="btn-direct-rpg-infiltrate" onclick="window.openRpgMode(game && game.selectedRegionId)" style="background: rgba(2, 132, 199, 0.25); border-color:#38bdf8;">
+              🚶 この街に潜入探索（密行）
+            </button>
             <button class="cmd-btn cmd-btn-attack" id="btn-direct-attack">
               ⚔️ 隣接領地から侵攻（合戦開始）
             </button>
@@ -505,16 +513,108 @@
     </div>
   </div>
 
+  <!-- =============================================
+       === MODAL / VIEWPORT: DQ-STYLE 2D RPG VIEWPORT ===
+       ============================================= -->
+  <div class="rpg-viewport-container" id="rpg-viewport-container" style="display: none;">
+    <div class="rpg-frame-window">
+      
+      <!-- Top HUD Header -->
+      <div class="rpg-hud-top">
+        <div class="rpg-hud-left">
+          <div class="rpg-hud-location" id="rpg-hud-location">🗾 東京広域フィールドマップ</div>
+          <div class="rpg-hud-atmosphere" id="rpg-hud-atmosphere">大東京の荒野、首都高の残骸、そして点在する53の独立城塞都市群。</div>
+        </div>
+        <div class="rpg-hud-currencies" id="rpg-hud-currencies">
+          <!-- Currencies chips injected dynamically -->
+        </div>
+        <div class="rpg-hud-actions">
+          <button class="btn btn-party" id="btn-toggle-touch-pad" style="font-size:12px; padding:4px 8px;" title="画面上の仮想コントローラー表示/非表示">🎮 操作パッド</button>
+          <button class="btn btn-party" id="btn-rpg-inventory" onclick="if(rpgEngine) rpgEngine.toggleInventoryMenu();">🎒 所持品(X)</button>
+          <button class="btn" style="background: #e11d48; border-color: #f43f5e;" id="btn-close-rpg" onclick="window.closeRpgMode()">大局戦略図に戻る</button>
+        </div>
+      </div>
+
+      <!-- Main Canvas Screen Area -->
+      <div class="rpg-canvas-wrapper">
+        <canvas id="rpg-canvas" width="640" height="480"></canvas>
+
+        <!-- On-Screen Virtual Controls for Mobile/Touch & Mouse -->
+        <div class="rpg-touch-controls" id="rpg-touch-controls">
+          <div class="rpg-dpad">
+            <button class="rpg-dpad-btn up" id="touch-btn-up">▲</button>
+            <div class="rpg-dpad-middle">
+              <button class="rpg-dpad-btn left" id="touch-btn-left">◀</button>
+              <div class="rpg-dpad-center">●</div>
+              <button class="rpg-dpad-btn right" id="touch-btn-right">▶</button>
+            </div>
+            <button class="rpg-dpad-btn down" id="touch-btn-down">▼</button>
+          </div>
+          <div class="rpg-action-btns">
+            <button class="rpg-act-btn" id="touch-btn-action" onclick="if(rpgEngine) rpgEngine.handleActionKey();" title="話す/調べる/決定">A:話す</button>
+            <button class="rpg-act-btn cancel" id="touch-btn-cancel" onclick="if(rpgEngine) rpgEngine.handleCancelKey();" title="メニュー/所持品/閉じる">B:荷物</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RPG Bottom Instructions Guide -->
+      <div class="rpg-footer-hints">
+        <span>⌨️ <b>PC:</b> [矢印キー/WASD] 移動 | [Space/Enter/Z] 話す・調べる | [X/Esc] 道具・所持金</span>
+        <span>📱 <b>スマホ/タッチ:</b> 画面下の十字キーと A/B ボタンで歩行・会話 | [🎮操作パッド] で表示切替</span>
+        <span>💡 街シンボル（⚡秋葉原・🏮新宿など）に入ると街要塞へ潜入！南の出口からフィールドへ脱出</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RPG Shop Window (DQ Style) -->
+  <div class="modal-overlay" id="rpg-shop-window" style="display: none; z-index: 100000;">
+    <div class="rpg-dialogue-window" style="max-width: 580px; width: 90%;">
+      <div class="rpg-dialogue-header">
+        <span id="rpg-shop-title">🏪 闇パーツ問屋</span>
+        <button class="btn" id="btn-close-rpg-shop" onclick="if(rpgEngine) rpgEngine.closeShop();">✕ 店を出る</button>
+      </div>
+      <div id="rpg-shop-balance" style="font-size: 13px; margin: 8px 0; color: #cbd5e1;"></div>
+      <div class="rpg-shop-items-container" id="rpg-shop-item-list">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- RPG Inventory & Multi-Currency Menu Window -->
+  <div class="modal-overlay" id="rpg-menu-window" style="display: none; z-index: 100000;">
+    <div class="rpg-dialogue-window" style="max-width: 600px; width: 90%;">
+      <div class="rpg-dialogue-header">
+        <span>🎒 部隊所持品・複数通貨台帳</span>
+        <button class="btn" id="btn-close-rpg-menu" onclick="document.getElementById('rpg-menu-window').style.display='none';">✕ 閉じる</button>
+      </div>
+      
+      <div style="font-size:12px; font-weight:bold; color:#fbbf24; margin-top:10px;">💰 各区・勢力の流通通貨残高</div>
+      <div class="rpg-currencies-grid" id="rpg-menu-currencies">
+        <!-- Injected dynamically -->
+      </div>
+
+      <div style="font-size:12px; font-weight:bold; color:#38bdf8; margin-top:14px;">📦 入手アイテム・通行許可証</div>
+      <div class="rpg-inventory-list" id="rpg-menu-items">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
   <!-- Game Scripts -->
-  <script src="yukiyanart-promo.js"></script>
-  <script src="pixel-sprites.js"></script>
-  <script src="battle-backgrounds.js"></script>
-  <script src="regions-data.js"></script>
-  <script src="characters.js"></script>
-  <script src="audio.js"></script>
-  <script src="battle-engine.js"></script>
-  <script src="game.js"></script>
-  <script src="app.js"></script>
+  <script src="yukiyanart-promo.js?v=2.2"></script>
+  <script src="pixel-sprites.js?v=2.2"></script>
+  <script src="battle-backgrounds.js?v=2.2"></script>
+  <script src="regions-data.js?v=2.2"></script>
+  <script src="characters.js?v=2.2"></script>
+  <script src="items-data.js?v=2.2"></script>
+  <script src="areas-data.js?v=2.2"></script>
+  <script src="world-map-data.js?v=2.2"></script>
+  <script src="rpg-engine.js?v=2.2"></script>
+  <script src="audio.js?v=2.2"></script>
+  <script src="battle-engine.js?v=2.2"></script>
+  <script src="game.js?v=2.2"></script>
+  <script src="app.js?v=2.2"></script>
 
 </body>
 </html>

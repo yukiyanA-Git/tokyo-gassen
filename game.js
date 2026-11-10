@@ -307,6 +307,26 @@ class ConquestGame {
     this.draftTurnsLeft = 0;
     this.overlordFaction = null;
 
+    // Multi-Currency and Inventory for Data-Driven RPG Mode
+    this.playerCurrencies = {
+      standard_yen: 5000,
+      junk_parts: 120,
+      food_ration: 15,
+      battery_cell: 25,
+      faith_talisman: 10
+    };
+    this.playerInventory = [
+      { id: 'item_repair_kit', count: 2 },
+      { id: 'item_emp_grenade', count: 1 }
+    ];
+    this.rpgState = {
+      currentMapType: 'overworld',
+      currentAreaId: null,
+      worldPlayerPos: { x: 19, y: 12 },
+      townPlayerPos: { x: 12, y: 15 },
+      clearedCheckpoints: []
+    };
+
     // 1. Resolve starting municipality
     let targetRegion = null;
     if (typeof startingChoice === 'string') {
@@ -1357,6 +1377,9 @@ class ConquestGame {
         overlordFaction: this.overlordFaction,
         monthlyBudgetLimit: this.monthlyBudgetLimit,
         spentBudgetThisTurn: this.spentBudgetThisTurn,
+        playerCurrencies: this.playerCurrencies,
+        playerInventory: this.playerInventory,
+        rpgState: this.rpgState,
         isVictory: this.isVictory,
         isDefeat: this.isDefeat
       };
@@ -1395,6 +1418,24 @@ class ConquestGame {
       this.overlordFaction = data.overlordFaction;
       this.monthlyBudgetLimit = data.monthlyBudgetLimit || 3000;
       this.spentBudgetThisTurn = data.spentBudgetThisTurn || 0;
+      this.playerCurrencies = data.playerCurrencies || {
+        standard_yen: 5000,
+        junk_parts: 120,
+        food_ration: 15,
+        battery_cell: 25,
+        faith_talisman: 10
+      };
+      this.playerInventory = data.playerInventory || [
+        { id: 'item_repair_kit', count: 2 },
+        { id: 'item_emp_grenade', count: 1 }
+      ];
+      this.rpgState = data.rpgState || {
+        currentMapType: 'overworld',
+        currentAreaId: null,
+        worldPlayerPos: { x: 19, y: 12 },
+        townPlayerPos: { x: 12, y: 15 },
+        clearedCheckpoints: []
+      };
       this.isVictory = data.isVictory || false;
       this.isDefeat = data.isDefeat || false;
 

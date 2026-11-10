@@ -1,0 +1,64 @@
+{
+  "wpn_stun_rod": {
+    "id": "wpn_stun_rod",
+    "name": "スタンロッド改",
+    "category": "weapon",
+    "price": 45,
+    "currency": "junk_parts",
+    "description": "秋葉原のジャンクパーツから組み上げられた高電圧警棒。攻撃力 +24",
+    "effect": { "attack": 24 }
+  },
+  "wpn_plasma_blade": {
+    "id": "wpn_plasma_blade",
+    "name": "プラズマ高周波刀",
+    "category": "weapon",
+    "price": 120,
+    "currency": "junk_parts",
+    "description": "電磁プラズマを纏う秋葉原工学の傑作刀。攻撃力 +58",
+    "effect": { "attack": 58 }
+  },
+  "item_emp_grenade": {
+    "id": "item_emp_grenade",
+    "name": "EMPパルスグレネード",
+    "category": "consumable",
+    "price": 20,
+    "currency": "junk_parts",
+    "description": "電磁パルスで敵ドローンや機械兵を麻痺させる手榴弾。",
+    "effect": { "damage": 150, "stun": true }
+  },
+  "item_repair_kit": {
+    "id": "item_repair_kit",
+    "name": "万能ハンダ＆リペアキット",
+    "category": "consumable",
+    "price": 15,
+    "currency": "junk_parts",
+    "description": "破損した防具や装備を応急修理し、HPを300回復する。",
+    "effect": { "healHp": 300 }
+  },
+  "item_pass_chiyoda": {
+    "id": "item_pass_chiyoda",
+    "name": "千代田中央通行許可証",
+    "category": "key_item",
+    "price": 80,
+    "currency": "junk_parts",
+    "description": "万世橋検問所を通過して千代田都庁中央中枢へ進入するための暗号化電子通行証。"
+  },
+  "item_neon_whiskey": {
+    "id": "item_neon_whiskey",
+    "name": "ネオン特濃ウイスキー",
+    "category": "consumable",
+    "price": 500,
+    "currency": "standard_yen",
+    "description": "新宿歌舞伎町の地下蒸留所で作られた度数の高い酒。気合でMPを全快する。",
+    "effect": { "healMp": 100 }
+  },
+  "wpn_cyber_dagger": {
+    "id": "wpn_cyber_dagger",
+    "name": "暗視サイバーダガー",
+    "category": "weapon",
+    "price": 1800,
+    "currency": "standard_yen",
+    "description": "夜戦に特化したチタン合金製暗殺短剣。素早さ +15、会心率 +10%",
+    "effect": { "speed": 15, "crit": 10 }
+  }
+}
