@@ -1555,183 +1555,243 @@ class TokyoRpgEngine {
   // --- HIGH-FIDELITY SFC DQ3 TILE & ARCHITECTURE RENDERERS ---
   // =========================================================================
 
-  // 1. Lush Organic Grass Tile with Textured Turf, Blades & Wildflowers
+  // 1. Lush Organic Grass Tile (4x Micro-Density Dithered Turf, Blades & Wildflowers)
   drawDq3GrassTile(ctx, px, py, x, y) {
-    // Rich multi-tone base
-    ctx.fillStyle = '#15803d'; // Rich forest turf
+    // 4x4 Micro-Dithered Turf Base (Multi-tone soil and grass underlay)
+    ctx.fillStyle = '#15803d';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // Subtle dither variation for natural soil underlay
-    const seed = (x * 37 + y * 53) % 11;
-    if (seed % 2 === 0) {
-      ctx.fillStyle = '#166534';
-      ctx.fillRect(px + (seed * 3) % 24, py + (seed * 5) % 24, 8, 4);
+    // Subtle 4x micro-pixel dither matrix for natural soil depth
+    const s = (x * 47 + y * 71) % 17;
+    ctx.fillStyle = '#14532d'; // Deep shadow turf
+    for (let dy = 0; dy < 32; dy += 8) {
+      for (let dx = 0; dx < 32; dx += 8) {
+        if ((dx + dy + s) % 3 === 0) {
+          ctx.fillRect(px + dx, py + dy, 4, 4);
+        }
+      }
     }
 
-    // Layered Grass Blade Tufts
-    ctx.fillStyle = '#22c55e'; // Midtone bright blades
-    ctx.fillRect(px + 4 + (seed * 2) % 16, py + 8 + (seed * 3) % 14, 2, 5);
-    ctx.fillRect(px + 6 + (seed * 2) % 16, py + 6 + (seed * 3) % 14, 2, 7);
-    ctx.fillRect(px + 18 + (seed * 4) % 10, py + 18 + (seed * 2) % 8, 2, 6);
+    ctx.fillStyle = '#16a34a'; // Vibrant midtone turf
+    for (let dy = 4; dy < 32; dy += 8) {
+      for (let dx = 4; dx < 32; dx += 8) {
+        if ((dx * 2 + dy + s) % 4 === 0) {
+          ctx.fillRect(px + dx, py + dy, 3, 3);
+        }
+      }
+    }
 
-    // Sunlight highlights on tips
-    ctx.fillStyle = '#86efac';
-    ctx.fillRect(px + 6 + (seed * 2) % 16, py + 5 + (seed * 3) % 14, 2, 2);
-    ctx.fillRect(px + 18 + (seed * 4) % 10, py + 17 + (seed * 2) % 8, 2, 2);
+    // Dense Micro Grass Blade Clusters (4-6 detailed tufts per tile)
+    const bladeTufts = [
+      { ox: 4,  oy: 6,  h: 5 },
+      { ox: 14, oy: 18, h: 6 },
+      { ox: 22, oy: 8,  h: 5 },
+      { ox: 8,  oy: 24, h: 6 },
+      { ox: 26, oy: 22, h: 5 }
+    ];
 
-    // Occasional tiny wild flowers (white daisies, pink clover, yellow buttercups)
-    if (seed === 3 || seed === 7) {
-      const fx = px + 8 + (seed * 7) % 16;
-      const fy = py + 8 + (seed * 5) % 16;
-      ctx.fillStyle = seed === 3 ? '#f472b6' : '#fef08a';
+    bladeTufts.forEach((bt, i) => {
+      const bx = px + (bt.ox + s * 2) % 26 + 2;
+      const by = py + (bt.oy + s * 3) % 24 + 4;
+
+      // Dark shadow at blade base
+      ctx.fillStyle = '#0f3e26';
+      ctx.fillRect(bx, by + bt.h - 1, 3, 2);
+
+      // Grass blades
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(bx, by + 1, 1.5, bt.h - 1);
+      ctx.fillRect(bx + 2, by, 1.5, bt.h);
+
+      // Sunlit tip highlights
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(bx, by, 1.5, 2);
+      ctx.fillRect(bx + 2, by - 1, 1.5, 2);
+    });
+
+    // Detailed Micro Wildflowers (Daisies, Pink Clovers, Buttercups with leaves)
+    if (s % 3 === 0) {
+      const fx = px + 6 + (s * 5) % 20;
+      const fy = py + 6 + (s * 7) % 20;
+
+      // Green flower leaves
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(fx - 1, fy + 2, 5, 2);
+
+      // Petals
+      const petalCol = (s % 6 === 0) ? '#f472b6' : ((s % 6 === 3) ? '#fef08a' : '#ffffff');
+      ctx.fillStyle = petalCol;
       ctx.fillRect(fx, fy, 3, 3);
-      ctx.fillStyle = '#ffffff';
+      // Center golden stamen
+      ctx.fillStyle = '#eab308';
       ctx.fillRect(fx + 1, fy + 1, 1, 1);
     }
   }
 
-  // 2. Natural Irregular Cobblestone Pathway with Dirt Fringe & Gravel
+  // 2. 4x Micro-Density Interlocking Cobblestone Pathway (20-25 Rounded Stones + Feathered Gravel)
   drawDq3CobblestoneTile(ctx, px, py, x, y, isPlaza, tier) {
-    // Earthy brown mortar / soil substrate
+    // Rich earthy mortar substrate
     ctx.fillStyle = '#78350f';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // 8-10 Individual Interlocking Cobblestones per tile with organic rounded shapes
-    const stones = [
-      { ox: 2, oy: 2, w: 12, h: 8, col: '#64748b' },
-      { ox: 16, oy: 2, w: 14, h: 9, col: '#475569' },
-      { ox: 2, oy: 12, w: 8, h: 9, col: '#475569' },
-      { ox: 12, oy: 12, w: 11, h: 8, col: isPlaza ? '#94a3b8' : '#64748b' },
-      { ox: 24, oy: 12, w: 6, h: 9, col: '#64748b' },
-      { ox: 2, oy: 22, w: 14, h: 8, col: '#64748b' },
-      { ox: 18, oy: 22, w: 12, h: 8, col: '#475569' }
+    // 4x Micro Mosaic Grid: 20-24 finely fitted, rounded cobblestones per 32x32 tile
+    const hash = (x * 31 + y * 47) % 7;
+
+    const microStones = [
+      // Row 1 (y: 2..8)
+      { ox: 2,  oy: 2,  w: 6, h: 5 }, { ox: 9,  oy: 2,  w: 7, h: 6 }, { ox: 17, oy: 2,  w: 6, h: 5 }, { ox: 24, oy: 2,  w: 6, h: 6 },
+      // Row 2 (y: 8..14)
+      { ox: 2,  oy: 8,  w: 7, h: 5 }, { ox: 10, oy: 9,  w: 6, h: 5 }, { ox: 17, oy: 8,  w: 7, h: 6 }, { ox: 25, oy: 9,  w: 5, h: 5 },
+      // Row 3 (y: 15..21)
+      { ox: 2,  oy: 14, w: 6, h: 6 }, { ox: 9,  oy: 15, w: 7, h: 6 }, { ox: 17, oy: 15, w: 6, h: 5 }, { ox: 24, oy: 15, w: 6, h: 6 },
+      // Row 4 (y: 22..28)
+      { ox: 2,  oy: 21, w: 7, h: 5 }, { ox: 10, oy: 22, w: 6, h: 5 }, { ox: 17, oy: 21, w: 7, h: 6 }, { ox: 25, oy: 22, w: 5, h: 5 },
+      // Row 5 (y: 28..31)
+      { ox: 2,  oy: 27, w: 6, h: 4 }, { ox: 9,  oy: 28, w: 7, h: 3 }, { ox: 17, oy: 28, w: 6, h: 3 }, { ox: 24, oy: 27, w: 6, h: 4 }
     ];
 
-    const hash = (x * 19 + y * 31) % 5;
-
-    stones.forEach((st, i) => {
+    microStones.forEach((st, i) => {
       const sx = px + st.ox;
       const sy = py + st.oy;
-      const baseCol = ((i + hash) % 3 === 0) ? '#94a3b8' : (((i + hash) % 3 === 1) ? '#64748b' : '#475569');
 
-      // Stone Face
-      ctx.fillStyle = isPlaza ? '#94a3b8' : baseCol;
-      ctx.fillRect(sx + 1, sy + 1, st.w - 2, st.h - 2);
+      // 4 distinct realistic stone hues (granite, slate, limestone, basalt)
+      let baseCol;
+      const colSeed = (i + hash) % 4;
+      if (isPlaza) {
+        baseCol = (colSeed === 0) ? '#cbd5e1' : ((colSeed === 1) ? '#94a3b8' : ((colSeed === 2) ? '#64748b' : '#b0c4de'));
+      } else {
+        baseCol = (colSeed === 0) ? '#64748b' : ((colSeed === 1) ? '#475569' : ((colSeed === 2) ? '#52525b' : '#71717a'));
+      }
 
-      // Top-Left 3D Sunlight Highlight (Bevel)
-      ctx.fillStyle = isPlaza ? '#f1f5f9' : '#cbd5e1';
-      ctx.fillRect(sx, sy, st.w, 1);
-      ctx.fillRect(sx, sy, 1, st.h);
+      // Stone Body (Rounded 3D Profile)
+      ctx.fillStyle = baseCol;
+      ctx.fillRect(sx, sy, st.w, st.h);
 
-      // Bottom-Right Crevice Mortar Shadow
+      // Top-Left Bevel Sunlight Highlight
+      ctx.fillStyle = isPlaza ? '#f8fafc' : '#cbd5e1';
+      ctx.fillRect(sx, sy, st.w - 1, 1);
+      ctx.fillRect(sx, sy, 1, st.h - 1);
+
+      // Bottom-Right Deep Crevice Mortar Shadow
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(sx, sy + st.h - 1, st.w, 1);
       ctx.fillRect(sx + st.w - 1, sy, 1, st.h);
     });
 
-    // Tiny gravel pebbles on corners to naturally feather into dirt/grass
-    ctx.fillStyle = '#d97706';
-    ctx.fillRect(px + 14, py + 10, 2, 2);
-    ctx.fillRect(px + 24, py + 21, 2, 2);
+    // Organic Loose Gravel & Dirt Specks feathering into borders
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(px + 8, py + 7, 1.5, 1.5);
+    ctx.fillRect(px + 23, py + 14, 1.5, 1.5);
+    ctx.fillRect(px + 15, py + 26, 1.5, 1.5);
   }
 
   // 3. Thick Castle Rampart Wall with Stone Blocks & Battlements
   drawDq3StoneWall(ctx, px, py, x, y, area) {
-    // Deep black base
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // Ashlar stone block courses (2 courses of stone per 32px tile)
-    const rowH = 16;
-    for (let r = 0; r < 2; r++) {
+    // 4 horizontal courses of precision stone blocks
+    const rowH = 8;
+    for (let r = 0; r < 4; r++) {
       const ry = py + r * rowH;
-      const offset = (r + x) % 2 === 0 ? 0 : 8;
+      const off = ((r + x) % 2 === 0) ? 0 : 8;
 
-      for (let bx = px - offset; bx < px + this.tileSize; bx += 16) {
+      for (let bx = px - off; bx < px + this.tileSize; bx += 16) {
         const sw = Math.min(14, px + this.tileSize - bx);
         if (sw <= 2) continue;
         const curBx = Math.max(px, bx);
         const curW = Math.min(sw, px + this.tileSize - curBx);
 
-        // Stone block face
         ctx.fillStyle = ((curBx + ry) % 7 === 0) ? '#64748b' : '#475569';
         ctx.fillRect(curBx, ry + 1, curW, rowH - 2);
 
-        // Top highlight
         ctx.fillStyle = '#94a3b8';
-        ctx.fillRect(curBx, ry + 1, curW, 2);
-        ctx.fillRect(curBx, ry + 1, 2, rowH - 2);
+        ctx.fillRect(curBx, ry + 1, curW, 1);
+        ctx.fillRect(curBx, ry + 1, 1, rowH - 2);
 
-        // Bottom/Right mortar shadow
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(curBx, ry + rowH - 2, curW, 1);
         ctx.fillRect(curBx + curW - 1, ry + 1, 1, rowH - 2);
       }
     }
 
-    // Outer battlement crenellations for northern/southern perimeter
     if (y === 0 || y === area.height - 1) {
       ctx.fillStyle = '#334155';
-      ctx.fillRect(px + 4, py + 2, 10, 4);
-      ctx.fillRect(px + 18, py + 2, 10, 4);
+      ctx.fillRect(px + 3, py + 1, 11, 4);
+      ctx.fillRect(px + 18, py + 1, 11, 4);
       ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(px + 4, py + 2, 10, 1);
-      ctx.fillRect(px + 18, py + 2, 10, 1);
+      ctx.fillRect(px + 3, py + 1, 11, 1);
+      ctx.fillRect(px + 18, py + 1, 11, 1);
     }
   }
 
-  // 4. Deep Blue River with Stone Embankment (護岸) & Lily Pads
+  // 4. Winding River with Embankment Stones, Multi-Tier Depth & Caustic Water Shimmer
   drawDq3WaterTile(ctx, px, py, x, y) {
-    // Stone revetment along bank
+    // 1. Embankment Stone Revetment along banks (Replaces flat stripe)
     ctx.fillStyle = '#334155';
-    ctx.fillRect(px, py, 3, this.tileSize);
-    ctx.fillRect(px + this.tileSize - 3, py, 3, this.tileSize);
-    ctx.fillStyle = '#64748b';
-    ctx.fillRect(px, py, 1, this.tileSize);
-    ctx.fillRect(px + this.tileSize - 1, py, 1, this.tileSize);
+    ctx.fillRect(px, py, 4, this.tileSize);
+    ctx.fillRect(px + this.tileSize - 4, py, 4, this.tileSize);
 
-    // Deep sapphire water gradient
-    const grad = ctx.createLinearGradient(px, py, px + this.tileSize, py + this.tileSize);
-    grad.addColorStop(0, '#1e3a8a');
-    grad.addColorStop(0.5, '#2563eb');
-    grad.addColorStop(1, '#1d4ed8');
+    // Individual carved embankment stones
+    for (let sy = py; sy < py + this.tileSize; sy += 8) {
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(px, sy + 1, 3, 6);
+      ctx.fillRect(px + this.tileSize - 3, sy + 1, 3, 6);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(px, sy + 1, 3, 1);
+      ctx.fillRect(px + this.tileSize - 3, sy + 1, 3, 1);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(px, sy + 7, 3, 1);
+      ctx.fillRect(px + this.tileSize - 3, sy + 7, 3, 1);
+    }
+
+    // 2. 3-Tier Water Depth Gradient (Emerald Shallows to Deep Midnight Blue)
+    const grad = ctx.createLinearGradient(px + 4, py, px + this.tileSize - 4, py);
+    grad.addColorStop(0, '#0284c7');    // Turquoise bank shallows
+    grad.addColorStop(0.3, '#1e40af');  // Sapphire transition
+    grad.addColorStop(0.5, '#172554');  // Deep trench center
+    grad.addColorStop(0.7, '#1e40af');
+    grad.addColorStop(1, '#0284c7');
     ctx.fillStyle = grad;
-    ctx.fillRect(px + 3, py, this.tileSize - 6, this.tileSize);
+    ctx.fillRect(px + 4, py, this.tileSize - 8, this.tileSize);
 
-    // Animated water shimmer ripples
-    const wave = (this.tickCount * 0.08 + x * 2 + y) % 6;
-    ctx.fillStyle = 'rgba(147, 197, 253, 0.75)';
-    ctx.fillRect(px + 5 + wave * 3, py + 8, 8, 2);
-    ctx.fillRect(px + 14 - wave * 2, py + 20, 7, 2);
+    // 3. Animated Caustic Wave Shimmer Lines
+    const wave1 = (this.tickCount * 0.06 + x * 3 + y * 2) % 8;
+    const wave2 = (this.tickCount * 0.09 + x + y * 4) % 7;
+    ctx.fillStyle = 'rgba(186, 230, 253, 0.8)';
+    ctx.fillRect(px + 6 + wave1 * 2, py + 8, 7, 1.5);
+    ctx.fillRect(px + 15 - wave2 * 1.5, py + 22, 8, 1.5);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillRect(px + 8 + wave1 * 2, py + 8, 3, 1);
 
-    // Lily pad with blooming pink lotus
-    if ((x * 7 + y * 13) % 5 === 0) {
-      ctx.fillStyle = '#15803d';
+    // 4. Floating Water Lily Pad with Layered Pink Lotus Blossom
+    if ((x * 11 + y * 19) % 5 === 0) {
+      ctx.fillStyle = '#15803d'; // Lily pad
       ctx.beginPath();
-      ctx.arc(px + 16, py + 15, 5, 0, Math.PI * 1.8);
+      ctx.arc(px + 16, py + 15, 6, 0, Math.PI * 1.8);
       ctx.lineTo(px + 16, py + 15);
       ctx.fill();
-      // Lotus blossom
-      ctx.fillStyle = '#f472b6';
+
+      // Multi-petal Lotus
+      ctx.fillStyle = '#ec4899'; // Petal base
       ctx.beginPath();
-      ctx.arc(px + 16, py + 14, 2, 0, Math.PI * 2);
+      ctx.arc(px + 16, py + 14, 3, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(px + 15, py + 13, 1, 1);
+      ctx.fillStyle = '#f472b6'; // Bright tip
+      ctx.fillRect(px + 15, py + 13, 2, 2);
+      ctx.fillStyle = '#fef08a'; // Golden core
+      ctx.fillRect(px + 16, py + 14, 1, 1);
     }
   }
 
   // 5. Timber Bridge with Handrails & Wood Planks
   drawDq3WoodBridgeTile(ctx, px, py) {
-    // Flowing water underneath bridge
-    ctx.fillStyle = '#1e3a8a';
+    ctx.fillStyle = '#172554';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // Shadow cast by bridge onto water
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
 
-    // Heavy wooden deck planks
     ctx.fillStyle = '#78350f';
     ctx.fillRect(px, py, this.tileSize, this.tileSize - 2);
 
@@ -1740,13 +1800,11 @@ class TokyoRpgEngine {
       ctx.fillRect(px + 3, py + p, this.tileSize - 6, 4);
       ctx.fillStyle = '#b45309';
       ctx.fillRect(px + 3, py + p, this.tileSize - 6, 1);
-      // Iron nails
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(px + 5, py + p + 1, 1, 1);
       ctx.fillRect(px + this.tileSize - 6, py + p + 1, 1, 1);
     }
 
-    // Raised 3D wooden balustrades & handrails
     ctx.fillStyle = '#451a03';
     ctx.fillRect(px, py, 4, this.tileSize);
     ctx.fillRect(px + this.tileSize - 4, py, 4, this.tileSize);
@@ -1755,9 +1813,8 @@ class TokyoRpgEngine {
     ctx.fillRect(px + this.tileSize - 3, py, 2, this.tileSize);
   }
 
-  // 6. Environmental Nature: Trees, Central Stone Well, Flowerbeds
+  // 6. Environmental Nature: Trees, Central Stone Well, Flowerbeds & Street Props
   drawDq3EnvironmentProps(ctx, area, minX, maxX, minY, maxY, tier) {
-    // Signature Round Trees
     const treePositions = [
       { x: 2, y: 2 }, { x: 9, y: 2 }, { x: 14, y: 2 }, { x: 21, y: 2 },
       { x: 2, y: 8 }, { x: 9, y: 8 }, { x: 14, y: 8 }, { x: 21, y: 8 },
@@ -1766,27 +1823,66 @@ class TokyoRpgEngine {
 
     treePositions.forEach(tp => {
       if (tp.x < minX || tp.x > maxX || tp.y < minY || tp.y > maxY) return;
-      const tx = tp.x * this.tileSize;
-      const ty = tp.y * this.tileSize;
-      this.drawDq3RoundTree(ctx, tx, ty);
+      this.drawDq3RoundTree(ctx, tp.x * this.tileSize, tp.y * this.tileSize);
+    });
+
+    // Street Lantern Posts along the avenue
+    const lampPositions = [
+      { x: 10, y: 7 }, { x: 14, y: 7 },
+      { x: 10, y: 13 }, { x: 14, y: 13 }
+    ];
+    lampPositions.forEach(lp => {
+      if (lp.x >= minX && lp.x <= maxX && lp.y >= minY && lp.y <= maxY) {
+        this.drawDq3StreetLantern(ctx, lp.x * this.tileSize, lp.y * this.tileSize);
+      }
     });
 
     // Central Stone Well in Plaza
     const midX = Math.floor(area.width / 2);
     const midY = Math.floor(area.height / 2);
     if (midX >= minX && midX <= maxX && midY >= minY && midY <= maxY) {
-      const wx = midX * this.tileSize;
-      const wy = midY * this.tileSize;
-      this.drawDq3StoneWell(ctx, wx, wy);
+      this.drawDq3StoneWell(ctx, midX * this.tileSize, midY * this.tileSize);
     }
 
-    // Colorful Flowerbeds
-    const flowerX = 8 * this.tileSize;
-    const flowerY = 12 * this.tileSize;
-    this.drawDq3Flowerbed(ctx, flowerX, flowerY);
+    // Flowerbed
+    this.drawDq3Flowerbed(ctx, 8 * this.tileSize, 12 * this.tileSize);
   }
 
-  // 7. Signature DQ3 Multi-Lobed Clustered Round Tree
+  // Draw Ornate Iron Street Lantern Post with Warm Glow
+  drawDq3StreetLantern(ctx, lx, ly) {
+    ctx.save();
+    // Post shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(lx + 16, ly + 28, 5, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Iron Post
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(lx + 15, ly + 8, 2, 20);
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(lx + 13, ly + 26, 6, 2); // Base
+
+    // Lantern Bracket & Glass Housing
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(lx + 12, ly + 4, 8, 2);
+    ctx.fillRect(lx + 13, ly + 6, 6, 8);
+
+    // Warm Glowing Lantern Light
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(lx + 14, ly + 7, 4, 6);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(lx + 15, ly + 8, 2, 3);
+
+    // Soft Ambient Light Aura
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.2)';
+    ctx.beginPath();
+    ctx.arc(lx + 16, ly + 10, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 7. Signature DQ3 Multi-Lobed Clustered Round Tree (4x Micro-Density Leaf Dithering)
   drawDq3RoundTree(ctx, tx, ty) {
     ctx.save();
     // 1. Soft Oval Cast Shadow on Ground
@@ -1795,29 +1891,30 @@ class TokyoRpgEngine {
     ctx.ellipse(tx + 16, ty + 30, 16, 7, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Thick Gnarled Oak Trunk with Roots
+    // 2. Thick Gnarled Oak Trunk with Roots & Bark Crevices
     ctx.fillStyle = '#451a03';
     ctx.fillRect(tx + 11, ty + 16, 10, 14);
     // Root flares
     ctx.beginPath();
-    ctx.moveTo(tx + 9, ty + 30);
-    ctx.lineTo(tx + 12, ty + 20);
-    ctx.lineTo(tx + 20, ty + 20);
-    ctx.lineTo(tx + 23, ty + 30);
+    ctx.moveTo(tx + 8, ty + 30);
+    ctx.lineTo(tx + 11, ty + 20);
+    ctx.lineTo(tx + 21, ty + 20);
+    ctx.lineTo(tx + 24, ty + 30);
     ctx.closePath();
     ctx.fill();
-    // Bark texture & highlights
     ctx.fillStyle = '#78350f';
     ctx.fillRect(tx + 12, ty + 17, 3, 11);
     ctx.fillStyle = '#92400e';
     ctx.fillRect(tx + 13, ty + 18, 1, 9);
 
-    // 3. Multi-Lobed Canopy (5 Overlapping Scalloped Foliage Spheres)
+    // 3. Multi-Lobed Canopy (7 Overlapping Scalloped Foliage Spheres for 4x volume)
     const lobes = [
       { cx: tx + 16, cy: ty + 12, r: 16 }, // Center
-      { cx: tx + 16, cy: ty + 5,  r: 12 }, // Top
-      { cx: tx + 8,  cy: ty + 13, r: 12 }, // Left
-      { cx: tx + 24, cy: ty + 13, r: 12 }, // Right
+      { cx: tx + 16, cy: ty + 4,  r: 12 }, // Top
+      { cx: tx + 7,  cy: ty + 12, r: 12 }, // Left
+      { cx: tx + 25, cy: ty + 12, r: 12 }, // Right
+      { cx: tx + 11, cy: ty + 7,  r: 11 }, // Top-Left
+      { cx: tx + 21, cy: ty + 7,  r: 11 }, // Top-Right
       { cx: tx + 16, cy: ty + 18, r: 13 }  // Bottom
     ];
 
@@ -1865,13 +1962,11 @@ class TokyoRpgEngine {
   // 8. Stone Well with A-Frame Shingle Roof & Bucket
   drawDq3StoneWell(ctx, wx, wy) {
     ctx.save();
-    // Ground Shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.beginPath();
     ctx.ellipse(wx + 16, wy + 24, 14, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Circular Stone Rim built from individual curved stones
     ctx.fillStyle = '#334155';
     ctx.beginPath();
     ctx.arc(wx + 16, wy + 18, 13, 0, Math.PI * 2);
@@ -1881,12 +1976,10 @@ class TokyoRpgEngine {
     ctx.arc(wx + 16, wy + 18, 12, 0, Math.PI * 2);
     ctx.fill();
 
-    // Individual curved stone highlights
     ctx.strokeStyle = '#94a3b8';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Deep Dark Well Water with Reflection
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.arc(wx + 16, wy + 18, 8, 0, Math.PI * 2);
@@ -1896,12 +1989,10 @@ class TokyoRpgEngine {
     ctx.arc(wx + 16, wy + 18, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sturdy Wooden A-Frame Posts
     ctx.fillStyle = '#451a03';
     ctx.fillRect(wx + 5, wy + 4, 3, 18);
     ctx.fillRect(wx + 24, wy + 4, 3, 18);
 
-    // Gabled Wooden Shingle Roof
     ctx.fillStyle = '#78350f';
     ctx.beginPath();
     ctx.moveTo(wx + 16, wy - 4);
@@ -1912,13 +2003,12 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#b45309';
     ctx.fillRect(wx + 3, wy + 5, 26, 2);
 
-    // Winch Axle, Rope & Bucket
     ctx.fillStyle = '#d97706';
     ctx.fillRect(wx + 8, wy + 7, 16, 2);
-    ctx.fillStyle = '#fef08a'; // Coiled rope
+    ctx.fillStyle = '#fef08a';
     ctx.fillRect(wx + 14, wy + 7, 4, 3);
-    ctx.fillRect(wx + 15, wy + 10, 2, 5); // Hanging rope
-    ctx.fillStyle = '#78350f'; // Wooden bucket
+    ctx.fillRect(wx + 15, wy + 10, 2, 5);
+    ctx.fillStyle = '#78350f';
     ctx.fillRect(wx + 14, wy + 15, 5, 5);
 
     ctx.restore();
@@ -1927,7 +2017,6 @@ class TokyoRpgEngine {
   // 9. Flowerbed with Stone Border & Layered Blooms
   drawDq3Flowerbed(ctx, fx, fy) {
     ctx.save();
-    // Stone Kerb Border
     ctx.fillStyle = '#475569';
     ctx.fillRect(fx, fy, 40, 24);
     ctx.fillStyle = '#94a3b8';
@@ -1937,24 +2026,19 @@ class TokyoRpgEngine {
     ctx.fillRect(fx, fy + 22, 40, 2);
     ctx.fillRect(fx + 38, fy, 2, 24);
 
-    // Rich Dark Loamy Soil
     ctx.fillStyle = '#451a03';
     ctx.fillRect(fx + 3, fy + 3, 34, 18);
 
-    // Blooming Flower Bushes (Roses, Tulips, Daisies)
     const blooms = [
       { x: 6, y: 6, col: '#f43f5e' }, { x: 14, y: 6, col: '#fde047' }, { x: 22, y: 6, col: '#ec4899' }, { x: 30, y: 6, col: '#38bdf8' },
       { x: 10, y: 13, col: '#a855f7' }, { x: 18, y: 13, col: '#f43f5e' }, { x: 26, y: 13, col: '#ffffff' }
     ];
 
     blooms.forEach(b => {
-      // Green foliage leaf tuft
       ctx.fillStyle = '#16a34a';
       ctx.fillRect(fx + b.x - 1, fy + b.y + 1, 6, 4);
-      // Petals
       ctx.fillStyle = b.col;
       ctx.fillRect(fx + b.x, fy + b.y, 4, 4);
-      // Center Pistil
       ctx.fillStyle = '#fef08a';
       ctx.fillRect(fx + b.x + 1, fy + b.y + 1, 2, 2);
     });
@@ -1975,53 +2059,51 @@ class TokyoRpgEngine {
     const bh = h * this.tileSize;
     const ts = this.tileSize;
 
-    // 1. Solid Outer Stone Masonry Courses across all perimeter tiles
-    // North Wall: (startTileX..startTileX + w - 1, startTileY)
+    // Outer Stone Walls
     for (let tx = startTileX; tx < startTileX + w; tx++) {
       if (doorWall === 'north' && tx === doorTileX) {
-        // North Doorway opening
         this.drawDoorwayThreshold(ctx, tx * ts, by, 'north');
       } else {
         this.drawWallBlockTile(ctx, tx * ts, by, tx, startTileY, 'north');
       }
     }
 
-    // South Wall: (startTileX..startTileX + w - 1, startTileY + h - 1)
     const southY = (startTileY + h - 1) * ts;
     for (let tx = startTileX; tx < startTileX + w; tx++) {
       if (doorWall === 'south' && tx === doorTileX) {
-        // South Doorway opening
         this.drawDoorwayThreshold(ctx, tx * ts, southY, 'south');
       } else {
         this.drawWallBlockTile(ctx, tx * ts, southY, tx, startTileY + h - 1, 'south');
       }
     }
 
-    // West Wall Columns: (startTileX, startTileY + 1..startTileY + h - 2)
     for (let ty = startTileY + 1; ty < startTileY + h - 1; ty++) {
       this.drawWallBlockTile(ctx, bx, ty * ts, startTileX, ty, 'west');
     }
 
-    // East Wall Columns: (startTileX + w - 1, startTileY + 1..startTileY + h - 2)
     const eastX = (startTileX + w - 1) * ts;
     for (let ty = startTileY + 1; ty < startTileY + h - 1; ty++) {
       this.drawWallBlockTile(ctx, eastX, ty * ts, startTileX + w - 1, ty, 'east');
     }
 
-    // 2. THE SIGNATURE DQ3 2.5D INTERIOR CAST SHADOWS (North & West Walls)
+    // Stacked outdoor crates & barrels against outer building wall
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(bx - 6, southY + 8, 6, 8);
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(bx - 5, southY + 9, 4, 6);
+
+    // 2.5D Drop Shadows on interior floor
     const floorX = (startTileX + 1) * ts;
     const floorY = (startTileY + 1) * ts;
     const floorW = (w - 2) * ts;
     const floorH = (h - 2) * ts;
 
-    // North Wall Drop Shadow falling onto interior floor
     const gradN = ctx.createLinearGradient(floorX, floorY, floorX, floorY + 16);
     gradN.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
     gradN.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = gradN;
     ctx.fillRect(floorX, floorY, floorW, 16);
 
-    // West Wall Shadow falling right onto interior floor
     const gradW = ctx.createLinearGradient(floorX, floorY, floorX + 12, floorY);
     gradW.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
     gradW.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -2033,11 +2115,9 @@ class TokyoRpgEngine {
 
   // Draw Individual 32x32 Castle Stone Wall Block Tile with 3D Bevel & Mortar Lines
   drawWallBlockTile(ctx, px, py, tx, ty, side) {
-    // Charcoal substrate
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // 2 horizontal courses of heavy ashlar stones per 32px tile
     const rowH = 16;
     for (let r = 0; r < 2; r++) {
       const ry = py + r * rowH;
@@ -2049,24 +2129,20 @@ class TokyoRpgEngine {
         const curBx = Math.max(px, bx);
         const curW = Math.min(sw, px + this.tileSize - curBx);
 
-        // Stone face color variation
         const col = ((curBx + ry) % 7 === 0) ? '#64748b' : (((curBx + ry) % 3 === 0) ? '#475569' : '#334155');
         ctx.fillStyle = col;
         ctx.fillRect(curBx, ry + 1, curW, rowH - 2);
 
-        // Top-left bevel highlight
         ctx.fillStyle = '#94a3b8';
         ctx.fillRect(curBx, ry + 1, curW, 1.5);
         ctx.fillRect(curBx, ry + 1, 1.5, rowH - 2);
 
-        // Bottom-right shadow groove
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(curBx, ry + rowH - 2, curW, 1);
         ctx.fillRect(curBx + curW - 1, ry + 1, 1, rowH - 2);
       }
     }
 
-    // Top surface coping stones if this is the top of a wall
     if (side === 'north') {
       ctx.fillStyle = '#94a3b8';
       ctx.fillRect(px, py, this.tileSize, 2);
@@ -2075,11 +2151,9 @@ class TokyoRpgEngine {
 
   // Draw Open Doorway Threshold with Stone Archway & Wooden Sill
   drawDoorwayThreshold(ctx, px, py, side) {
-    // Dirt / Floor ground beneath door
     ctx.fillStyle = '#78350f';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // Weathered Timber Threshold Step
     ctx.fillStyle = '#92400e';
     ctx.fillRect(px + 2, py + 4, this.tileSize - 4, this.tileSize - 8);
     ctx.fillStyle = '#b45309';
@@ -2087,7 +2161,6 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#451a03';
     ctx.fillRect(px + 2, py + this.tileSize - 6, this.tileSize - 4, 2);
 
-    // Side Stone Jambs (Door Posts)
     ctx.fillStyle = '#475569';
     ctx.fillRect(px, py, 4, this.tileSize);
     ctx.fillRect(px + this.tileSize - 4, py, 4, this.tileSize);
@@ -2095,7 +2168,6 @@ class TokyoRpgEngine {
     ctx.fillRect(px, py, 2, this.tileSize);
     ctx.fillRect(px + this.tileSize - 4, py, 2, this.tileSize);
 
-    // Depth Shadow inside door opening
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     if (side === 'south') {
       ctx.fillRect(px + 4, py, this.tileSize - 8, 6);
@@ -2104,7 +2176,7 @@ class TokyoRpgEngine {
     }
   }
 
-  // 1. SFC DQ3 INN (True 32px Solid Stone Walls, 4-Poster Beds, Desk & Innkeeper)
+  // 1. SFC DQ3 INN (Masterpiece Bedroom, Living Props, Bookshelf & Search Urn)
   drawDq3InnBuilding(ctx, startTileX, startTileY, w, h, doorTileX, doorTileY, tier) {
     const ts = this.tileSize;
     const bx = startTileX * ts;
@@ -2113,17 +2185,14 @@ class TokyoRpgEngine {
     const bh = h * ts;
 
     ctx.save();
-
-    // 1. Full 32px Stone Perimeter Walls with Doorway at (doorTileX, doorTileY)
     this.drawRoomStonePerimeter(ctx, startTileX, startTileY, w, h, doorTileX, doorTileY, 'south');
 
-    // 2. Interior Floor (Covers tiles startTileX + 1..startTileX + w - 2, startTileY + 1..startTileY + h - 2)
     const floorX = (startTileX + 1) * ts;
     const floorY = (startTileY + 1) * ts;
     const floorW = (w - 2) * ts;
     const floorH = (h - 2) * ts;
 
-    // Rich Aged Timber Hardwood Floorboards
+    // Aged Hardwood Floorboards
     ctx.fillStyle = '#78350f';
     ctx.fillRect(floorX, floorY, floorW, floorH);
 
@@ -2136,7 +2205,7 @@ class TokyoRpgEngine {
       ctx.fillRect(floorX, p + 7, floorW, 1);
     }
 
-    // 3. Luxurious Royal Crimson Velvet Rug with Gold Filigree
+    // Rich Crimson Carpet
     const crpX = floorX + 38;
     const crpY = floorY + 8;
     const crpW = floorW - 46;
@@ -2156,7 +2225,6 @@ class TokyoRpgEngine {
     ctx.lineWidth = 1;
     ctx.strokeRect(crpX + 5, crpY + 5, crpW - 10, crpH - 10);
 
-    // Center Gold Diamond Emblem
     const midCrpX = crpX + crpW / 2;
     const midCrpY = crpY + crpH / 2;
     ctx.fillStyle = '#eab308';
@@ -2168,11 +2236,11 @@ class TokyoRpgEngine {
     ctx.closePath();
     ctx.fill();
 
-    // 4. Two 4-Poster Beds along the Left Wall (x: 4, y: 4 and x: 4, y: 5)
+    // 4-Poster Beds along Left Wall
     this.drawDq3Bed(ctx, floorX + 4, floorY + 4);
     this.drawDq3Bed(ctx, floorX + 4, floorY + 48);
 
-    // Bedside Nightstand Table with Candlestick
+    // Bedside Nightstand with Candlestick
     ctx.fillStyle = '#451a03';
     ctx.fillRect(floorX + 6, floorY + 40, 14, 6);
     ctx.fillStyle = '#fde047';
@@ -2180,15 +2248,23 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#ea580c';
     ctx.fillRect(floorX + 12, floorY + 34, 2, 2);
 
-    // Wardrobe in upper right
+    // NEW LIVING PROPS: Bookshelf in upper right
     ctx.fillStyle = '#451a03';
-    ctx.fillRect(floorX + floorW - 20, floorY + 4, 16, 22);
+    ctx.fillRect(floorX + floorW - 22, floorY + 4, 18, 22);
     ctx.fillStyle = '#78350f';
-    ctx.fillRect(floorX + floorW - 18, floorY + 6, 12, 18);
-    ctx.fillStyle = '#fde047';
-    ctx.fillRect(floorX + floorW - 13, floorY + 12, 2, 4);
+    ctx.fillRect(floorX + floorW - 20, floorY + 6, 14, 18);
+    // Colored books on shelf
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(floorX + floorW - 18, floorY + 8, 3, 7);
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(floorX + floorW - 14, floorY + 8, 3, 7);
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(floorX + floorW - 10, floorY + 8, 3, 7);
 
-    // 5. Reception Counter (Placed at tile 5, 6 - in front of innkeeper)
+    // NEW LIVING PROPS: Ceramic Search Urn / Pot (ツボ)
+    this.drawDq3CeramicPot(ctx, floorX + floorW - 16, floorY + 32);
+
+    // Reception Counter at (5, 6)
     const cntX = (startTileX + 2) * ts;
     const cntY = (startTileY + 3) * ts + 14;
     const cntW = 44;
@@ -2203,16 +2279,15 @@ class TokyoRpgEngine {
     ctx.strokeStyle = '#ca8a04';
     ctx.strokeRect(cntX, cntY, cntW, cntH);
 
-    // Service bell & ledger book
     ctx.fillStyle = '#fef08a';
     ctx.fillRect(cntX + 6, cntY + 3, 4, 4);
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(cntX + 28, cntY + 3, 9, 6);
 
-    // 6. Innkeeper standing behind counter at (5, 5)
+    // Innkeeper standing behind counter at (5, 5)
     this.drawDq3InnkeeperSprite(ctx, cntX + 12, cntY - 18);
 
-    // 7. Hanging Wooden Signboard outside wall
+    // Hanging Wooden Signboard outside wall
     const sgnX = bx + 4;
     const sgnY = by + bh - 16;
     ctx.fillStyle = '#1e293b';
@@ -2228,6 +2303,30 @@ class TokyoRpgEngine {
     ctx.fillText('🛌 INN', sgnX + 19, sgnY + 9);
 
     ctx.restore();
+  }
+
+  // Draw DQ3 Ceramic Search Pot / Urn (ツボ)
+  drawDq3CeramicPot(ctx, px, py) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(px + 6, py + 12, 6, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Clay pot body
+    ctx.fillStyle = '#b45309';
+    ctx.beginPath();
+    ctx.arc(px + 6, py + 7, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d97706';
+    ctx.fillRect(px + 2, py + 3, 8, 4);
+    // Pot rim & dark opening
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(px + 3, py + 1, 6, 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(px + 4, py + 2, 4, 1);
+    // Sunlight highlight
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(px + 3, py + 4, 2, 3);
   }
 
   // Draw DQ3 4-Poster Bed with Pillows, Quilt & Headboard
@@ -2287,8 +2386,6 @@ class TokyoRpgEngine {
     const bh = h * ts;
 
     ctx.save();
-
-    // 1. Full 32px Stone Perimeter Walls with Doorway at (doorTileX, doorTileY)
     this.drawRoomStonePerimeter(ctx, startTileX, startTileY, w, h, doorTileX, doorTileY, 'south');
 
     const floorX = (startTileX + 1) * ts;
@@ -2296,7 +2393,7 @@ class TokyoRpgEngine {
     const floorW = (w - 2) * ts;
     const floorH = (h - 2) * ts;
 
-    // 2. Checkerboard Slate Flagstone Tiles
+    // Checkerboard Slate Tiles
     for (let fy = floorY; fy < floorY + floorH; fy += 14) {
       for (let fx = floorX; fx < floorX + floorW; fx += 14) {
         const curW = Math.min(13, floorX + floorW - fx);
@@ -2310,12 +2407,12 @@ class TokyoRpgEngine {
       }
     }
 
-    // 3. North Wall Armory Displays
+    // North Wall Armory Displays
     this.drawDq3WeaponRack(ctx, floorX + 10, floorY + 4);
     this.drawDq3ShieldRack(ctx, floorX + 60, floorY + 4);
     this.drawDq3PotionShelf(ctx, floorX + floorW - 36, floorY + 4);
 
-    // 4. Sales Counter at (17..18, 5)
+    // Sales Counter at (17..18, 5)
     const cntX = (startTileX + 2) * ts;
     const cntY = (startTileY + 2) * ts + 14;
     const cntW = 54;
@@ -2330,20 +2427,19 @@ class TokyoRpgEngine {
     ctx.strokeStyle = '#d97706';
     ctx.strokeRect(cntX, cntY, cntW, cntH);
 
-    // Brass scales & coin purse
     ctx.fillStyle = '#fde047';
     ctx.fillRect(cntX + 8, cntY + 3, 6, 4);
     ctx.fillStyle = '#451a03';
     ctx.fillRect(cntX + 36, cntY + 3, 7, 5);
 
-    // 5. Merchant NPC standing behind counter at (17, 4)
+    // Merchant NPC standing behind counter at (17, 4)
     this.drawDq3MerchantSprite(ctx, cntX + 18, cntY - 18);
 
-    // 6. Corner Props: Heavy Chest & Supply Barrels
+    // Corner Props: Heavy Chest & Supply Barrels
     this.drawDq3Chest(ctx, floorX + 4, floorY + floorH - 22);
     this.drawDq3Barrel(ctx, floorX + floorW - 20, floorY + floorH - 24);
 
-    // 7. Hanging Wooden Signboard outside wall
+    // Hanging Wooden Signboard outside wall
     const sgnX = bx + 4;
     const sgnY = by + bh - 16;
     ctx.fillStyle = '#1e293b';
@@ -2368,7 +2464,6 @@ class TokyoRpgEngine {
     ctx.strokeStyle = '#78350f';
     ctx.strokeRect(x, y, 42, 18);
 
-    // Silver Broadsword
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(x + 6, y + 4, 26, 2);
     ctx.fillStyle = '#eab308';
@@ -2376,7 +2471,6 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#2563eb';
     ctx.fillRect(x + 2, y + 3, 2, 4);
 
-    // Spear with Red Tassel
     ctx.fillStyle = '#78350f';
     ctx.fillRect(x + 6, y + 10, 30, 2);
     ctx.fillStyle = '#dc2626';
@@ -2415,11 +2509,11 @@ class TokyoRpgEngine {
   drawDq3PotionShelf(ctx, x, y) {
     ctx.fillStyle = '#451a03';
     ctx.fillRect(x, y + 13, 30, 3);
-    ctx.fillStyle = '#ef4444'; // Red
+    ctx.fillStyle = '#ef4444';
     ctx.fillRect(x + 3, y + 5, 6, 8);
-    ctx.fillStyle = '#3b82f6'; // Blue
+    ctx.fillStyle = '#3b82f6';
     ctx.fillRect(x + 12, y + 4, 6, 9);
-    ctx.fillStyle = '#10b981'; // Green
+    ctx.fillStyle = '#10b981';
     ctx.fillRect(x + 21, y + 6, 6, 7);
   }
 
@@ -2474,7 +2568,6 @@ class TokyoRpgEngine {
     const bh = h * ts;
 
     ctx.save();
-    // North wall doorway at (doorTileX, doorTileY)
     this.drawRoomStonePerimeter(ctx, startTileX, startTileY, w, h, doorTileX, doorTileY, 'north');
 
     const floorX = (startTileX + 1) * ts;
@@ -2482,7 +2575,6 @@ class TokyoRpgEngine {
     const floorW = (w - 2) * ts;
     const floorH = (h - 2) * ts;
 
-    // Dark Soot-Stained Industrial Brick Floor
     ctx.fillStyle = '#27272a';
     ctx.fillRect(floorX, floorY, floorW, floorH);
     for (let fy = floorY; fy < floorY + floorH; fy += 12) {
@@ -2492,7 +2584,7 @@ class TokyoRpgEngine {
       ctx.fillRect(floorX, fy + 10, floorW, 2);
     }
 
-    // 1. Great Masonry Stone Forge / Furnace
+    // Great Stone Forge
     const frgX = floorX + 6;
     const frgY = floorY + 4;
     const frgW = 34;
@@ -2505,7 +2597,6 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(frgX + 6, frgY + 8, frgW - 12, frgH - 10);
 
-    // Animated Multi-Layer Dancing Fire
     const flameH = 7 + Math.sin(this.tickCount * 0.3) * 3;
     ctx.fillStyle = '#dc2626';
     ctx.fillRect(frgX + 8, frgY + frgH - 2 - flameH, frgW - 16, flameH);
@@ -2514,7 +2605,7 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#fef08a';
     ctx.fillRect(frgX + 12, frgY + frgH - 2 - flameH * 0.5, frgW - 24, flameH * 0.5);
 
-    // 2. Stone Chimney with Billowing Soft Smoke Puffs
+    // Stone Chimney with Billowing Smoke Puffs
     ctx.fillStyle = '#334155';
     ctx.fillRect(bx + bw - 26, by - 16, 14, 22);
     ctx.strokeStyle = '#1e293b';
@@ -2533,7 +2624,7 @@ class TokyoRpgEngine {
       ctx.fill();
     }
 
-    // 3. Heavy Cast Iron Anvil on Oak Stump with Blacksmith Hammer
+    // Heavy Cast Iron Anvil with Blacksmith Hammer & Glowing Ingot
     const anvX = floorX + floorW - 28;
     const anvY = floorY + 14;
     ctx.fillStyle = '#78350f';
@@ -2543,7 +2634,10 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#475569';
     ctx.fillRect(anvX + 1, anvY + 1, 14, 3);
     ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(anvX + 5, anvY - 2, 7, 2); // Hammer
+    ctx.fillRect(anvX + 5, anvY - 2, 7, 2);
+    // Glowing red-hot iron bar on anvil!
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(anvX + 2, anvY, 8, 2);
 
     // 4. Water Quenching Trough
     ctx.fillStyle = '#451a03';
@@ -2891,219 +2985,307 @@ class TokyoRpgEngine {
     }
   }
 
-  // Draw 2D Retro Player Sprite (Super Famicom DQ3 Caliber with 4-Way Direction & Rich Animations)
+  // Draw 2D Retro Player Sprite (Ultra-Fine 4x Micro-Density DQ Hero with Crisp Dark Outlines & Rich Fabrics)
   renderPlayerSprite(ctx, px, py, dir, frame) {
     ctx.save();
     const cx = px + this.tileSize / 2;
     const cy = py + this.tileSize / 2;
+    const isStep = (frame % 2 !== 0);
 
-    // 1. Soft Dynamic Ground Shadow
+    // 1. Soft Oval Ground Shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     ctx.beginPath();
     ctx.ellipse(cx, py + this.tileSize - 3, 9, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    const isStep = (frame % 2 !== 0);
-
     // ==========================================
     // DIRECTION: DOWN (Facing Camera)
     // ==========================================
     if (dir === 'down') {
-      // Red Cape billowing behind shoulders
-      ctx.fillStyle = '#991b1b'; // Cape Shadow
-      ctx.fillRect(cx - 10, py + 12, 20, 14);
-      ctx.fillStyle = '#dc2626'; // Cape Body
-      ctx.fillRect(cx - 9, py + 13, 18, 12);
-      ctx.fillStyle = '#ef4444'; // Edge highlights
-      ctx.fillRect(cx - 10, py + 14, 2, 10);
-      ctx.fillRect(cx + 8, py + 14, 2, 10);
+      // 1. Red Velvet Cape (Cascading on both flanks with crisp dark outline)
+      ctx.fillStyle = '#0f172a'; // Dark Cape Outline
+      ctx.fillRect(cx - 11, py + 11, 22, 15);
 
-      // Hero's Royal Cobalt Tunic
-      ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(cx - 7, py + 11, 14, 13);
-      ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 6, py + 12, 12, 11);
+      ctx.fillStyle = '#7f1d1d'; // Deep shadow velvet
+      ctx.fillRect(cx - 10, py + 12, 20, 13);
+      ctx.fillStyle = '#b91c1c'; // Midtone crimson
+      ctx.fillRect(cx - 9, py + 13, 18, 11);
+      ctx.fillStyle = '#dc2626'; // Vibrant red body
+      ctx.fillRect(cx - 8, py + 14, 16, 9);
+      ctx.fillStyle = '#ef4444'; // Flank sunlight highlights
+      ctx.fillRect(cx - 9, py + 14, 2, 8);
+      ctx.fillRect(cx + 7, py + 14, 2, 8);
 
-      // Gold Heraldic Cross on Chest
-      ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 1, py + 13, 2, 6);
-      ctx.fillRect(cx - 3, py + 15, 6, 2);
+      // 2. Royal Blue Tunic with Crisp Outline & Gold Embroidery
+      ctx.fillStyle = '#0f172a'; // Tunic Outline
+      ctx.fillRect(cx - 8, py + 10, 16, 14);
 
-      // Golden Shoulder Pauldrons
+      ctx.fillStyle = '#1e3a8a'; // Deep Indigo shadow
+      ctx.fillRect(cx - 7, py + 11, 14, 12);
+      ctx.fillStyle = '#2563eb'; // Royal blue tunic fabric
+      ctx.fillRect(cx - 6, py + 12, 12, 10);
+      ctx.fillStyle = '#3b82f6'; // Chest fold highlight
+      ctx.fillRect(cx - 4, py + 13, 8, 3);
+
+      // Detailed Golden Heraldic Cross / Eagle on Chest
       ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(cx - 9, py + 10, 4, 4);
-      ctx.fillRect(cx + 5, py + 10, 4, 4);
-      ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 8, py + 10, 3, 3);
-      ctx.fillRect(cx + 5, py + 10, 3, 3);
+      ctx.fillRect(cx - 1.5, py + 13, 3, 6);
+      ctx.fillRect(cx - 3.5, py + 15, 7, 2);
+      ctx.fillStyle = '#fde047'; // Gleaming gold core
+      ctx.fillRect(cx - 1, py + 13.5, 2, 5);
+      ctx.fillRect(cx - 3, py + 15.5, 6, 1);
 
-      // Leather Belt with Brass Buckle
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 6, py + 18, 12, 3);
-      ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 2, py + 17, 4, 4);
-      ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 1, py + 18, 2, 2);
-
-      // Sword Scabbard on Left Hip (Glinting Pommel)
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(cx - 9, py + 16, 3, 10);
-      ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 10, py + 15, 5, 2);
-      ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 9, py + 14, 3, 2);
-
-      // Head & Face
-      ctx.fillStyle = '#fed7aa'; // Skin tone
-      ctx.fillRect(cx - 5, py + 4, 10, 8);
-      ctx.fillStyle = '#fdba74'; // Chin shadow
-      ctx.fillRect(cx - 4, py + 11, 8, 2);
-
-      // Hero's Chestnut Spiky Hair
-      ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 7, py + 1, 14, 5);
-      ctx.fillRect(cx - 8, py + 3, 3, 6);
-      ctx.fillRect(cx + 5, py + 3, 3, 6);
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 6, py + 2, 12, 3);
-      ctx.fillStyle = '#b45309';
-      ctx.fillRect(cx - 4, py + 1, 8, 2); // Highlight
-
-      // Golden Circlet Tiara with Emerald
+      // Metallic Gold Shoulder Pauldrons (Left & Right)
+      ctx.fillStyle = '#0f172a'; // Outline
+      ctx.fillRect(cx - 10, py + 9, 5, 5);
+      ctx.fillRect(cx + 5, py + 9, 5, 5);
       ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(cx - 6, py + 4, 12, 2);
+      ctx.fillRect(cx - 9, py + 10, 3, 3);
+      ctx.fillRect(cx + 6, py + 10, 3, 3);
+      ctx.fillStyle = '#fef08a'; // Specular gleam
+      ctx.fillRect(cx - 9, py + 10, 2, 1.5);
+      ctx.fillRect(cx + 6, py + 10, 2, 1.5);
+
+      // Dual Leather Belts with Studs & Brass Buckle
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(cx - 6, py + 17, 12, 3.5);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(cx - 5, py + 18, 10, 1.5);
+      // Gold Buckle
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 2.5, py + 16.5, 5, 4.5);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 5, py + 4, 10, 1.5);
+      ctx.fillRect(cx - 2, py + 17, 4, 3.5);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 1, py + 18, 2, 1.5);
+
+      // Silver Broadsword Scabbard on Left Hip (Blue Gem Pommel)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 10, py + 15, 4, 11);
+      ctx.fillStyle = '#64748b'; // Scabbard body
+      ctx.fillRect(cx - 9, py + 16, 2, 9);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(cx - 9, py + 16, 1, 9);
+      // Gold Hilt & Crossguard
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 11, py + 14, 5, 2.5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(cx - 10, py + 14, 3, 1.5);
+      ctx.fillStyle = '#2563eb'; // Sapphire pommel
+      ctx.fillRect(cx - 9.5, py + 13, 2, 2);
+
+      // 3. Head & Face (3-tone skin shading with jawline shadow)
+      ctx.fillStyle = '#0f172a'; // Head outline
+      ctx.fillRect(cx - 6, py + 3, 12, 9);
+      ctx.fillStyle = '#fed7aa'; // Base skin
+      ctx.fillRect(cx - 5, py + 4, 10, 7.5);
+      ctx.fillStyle = '#fdba74'; // Chin / neck contour shadow
+      ctx.fillRect(cx - 4, py + 10, 8, 1.5);
+      ctx.fillStyle = '#fff7ed'; // Cheek highlight
+      ctx.fillRect(cx - 4, py + 7, 2, 2);
+      ctx.fillRect(cx + 2, py + 7, 2, 2);
+
+      // 4. Hero's Chestnut Spiky Hair (Fine 10-lock detail)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 8, py, 16, 6);
+      ctx.fillRect(cx - 9, py + 2, 3, 7);
+      ctx.fillRect(cx + 6, py + 2, 3, 7);
+
+      ctx.fillStyle = '#451a03'; // Deep hair root
+      ctx.fillRect(cx - 7, py + 1, 14, 4);
+      ctx.fillStyle = '#78350f'; // Hair body
+      ctx.fillRect(cx - 6, py + 1.5, 12, 3);
+      ctx.fillStyle = '#b45309'; // Sunlight sheen on top
+      ctx.fillRect(cx - 4, py + 1, 8, 1.5);
+
+      // 5. Golden Winged Tiara / Circlet with Radiant Emerald Gem
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 7, py + 3.5, 14, 2.5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(cx - 6, py + 3.5, 12, 1.5);
       // Winged tips
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 7, py + 3, 2, 3);
-      ctx.fillRect(cx + 5, py + 3, 2, 3);
-      // Emerald Jewel
+      ctx.fillRect(cx - 8, py + 2.5, 2, 3);
+      ctx.fillRect(cx + 6, py + 2.5, 2, 3);
+      // Emerald Center Gem
+      ctx.fillStyle = '#065f46';
+      ctx.fillRect(cx - 1.5, py + 2.5, 3, 3.5);
       ctx.fillStyle = '#10b981';
-      ctx.fillRect(cx - 1, py + 3, 2, 3);
-      ctx.fillStyle = '#a7f3d0';
+      ctx.fillRect(cx - 1, py + 3, 2, 2.5);
+      ctx.fillStyle = '#ecfdf5'; // Specular star sparkle
       ctx.fillRect(cx - 1, py + 3, 1, 1);
 
-      // Expressive Anime Eyes
+      // 6. Expressive Anime Eyes (Pupil, White Sclera, Catchlight)
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 4, py + 7, 2, 3);
-      ctx.fillRect(cx + 2, py + 7, 2, 3);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx - 4, py + 7, 1, 1);
-      ctx.fillRect(cx + 2, py + 7, 1, 1);
+      ctx.fillRect(cx - 4.5, py + 6.5, 2.5, 3);
+      ctx.fillRect(cx + 2,   py + 6.5, 2.5, 3);
+      ctx.fillStyle = '#ffffff'; // Eye sclera
+      ctx.fillRect(cx - 4.5, py + 7, 1, 1.5);
+      ctx.fillRect(cx + 3.5, py + 7, 1, 1.5);
+      ctx.fillStyle = '#ffffff'; // Catchlight dot
+      ctx.fillRect(cx - 3.5, py + 6.5, 1, 1);
+      ctx.fillRect(cx + 2,   py + 6.5, 1, 1);
 
-      // Boots & Stepping Motion
-      ctx.fillStyle = '#451a03';
+      // 7. Leather Travel Boots with Dynamic Walking Motion
+      ctx.fillStyle = '#0f172a'; // Boot outline
       if (!isStep) {
-        ctx.fillRect(cx - 5, py + 24, 4, 6);
-        ctx.fillRect(cx + 1, py + 23, 4, 6);
+        ctx.fillRect(cx - 6, py + 23, 5, 7);
+        ctx.fillRect(cx + 1, py + 22, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx - 5.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx + 1.5, py + 22.5, 4, 6);
+        ctx.fillStyle = '#78350f'; // Cuff
+        ctx.fillRect(cx - 5.5, py + 23.5, 4, 1.5);
+        ctx.fillRect(cx + 1.5, py + 22.5, 4, 1.5);
       } else {
-        ctx.fillRect(cx - 5, py + 23, 4, 6);
-        ctx.fillRect(cx + 1, py + 24, 4, 6);
+        ctx.fillRect(cx - 6, py + 22, 5, 7);
+        ctx.fillRect(cx + 1, py + 23, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx - 5.5, py + 22.5, 4, 6);
+        ctx.fillRect(cx + 1.5, py + 23.5, 4, 6);
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(cx - 5.5, py + 22.5, 4, 1.5);
+        ctx.fillRect(cx + 1.5, py + 23.5, 4, 1.5);
       }
     }
     // ==========================================
     // DIRECTION: UP (Facing Back / Away)
     // ==========================================
     else if (dir === 'up') {
-      // Magnificent Red Cape Draping Full Back
-      ctx.fillStyle = '#7f1d1d'; // Deep fold shadow
-      ctx.fillRect(cx - 9, py + 10, 18, 16);
-      ctx.fillStyle = '#b91c1c';
-      ctx.fillRect(cx - 8, py + 11, 16, 14);
-      ctx.fillStyle = '#dc2626';
-      ctx.fillRect(cx - 6, py + 12, 12, 12);
-      ctx.fillStyle = '#ef4444'; // Cape highlights
-      ctx.fillRect(cx - 3, py + 13, 6, 10);
+      // Magnificent Full Red Velvet Cape (Full back drape with 4-shade fold creases)
+      ctx.fillStyle = '#0f172a'; // Outline
+      ctx.fillRect(cx - 10, py + 9, 20, 18);
 
-      // Gold Shoulder Clasp Pins
+      ctx.fillStyle = '#450a0a'; // Deep fold crevices
+      ctx.fillRect(cx - 9, py + 10, 18, 16);
+      ctx.fillStyle = '#7f1d1d'; // Shadow drape
+      ctx.fillRect(cx - 8, py + 11, 16, 14);
+      ctx.fillStyle = '#b91c1c'; // Midtone velvet
+      ctx.fillRect(cx - 7, py + 12, 14, 12);
+      ctx.fillStyle = '#dc2626'; // Red body
+      ctx.fillRect(cx - 5, py + 12, 10, 11);
+      ctx.fillStyle = '#ef4444'; // Fabric highlights
+      ctx.fillRect(cx - 3, py + 13, 6, 9);
+
+      // Gold Shoulder Brooch Clasps
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 9, py + 9.5, 3.5, 3.5);
+      ctx.fillRect(cx + 5.5, py + 9.5, 3.5, 3.5);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 8, py + 10, 3, 3);
-      ctx.fillRect(cx + 5, py + 10, 3, 3);
+      ctx.fillRect(cx - 8.5, py + 10, 2.5, 2.5);
+      ctx.fillRect(cx + 6, py + 10, 2.5, 2.5);
 
       // Spiky Hair Back Contours
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 8, py + 1, 16, 9);
       ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 7, py + 2, 14, 8);
+      ctx.fillRect(cx - 7, py + 2, 14, 7);
       ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 6, py + 3, 12, 6);
+      ctx.fillRect(cx - 6, py + 3, 12, 5);
       ctx.fillStyle = '#b45309';
-      ctx.fillRect(cx - 4, py + 2, 8, 3);
+      ctx.fillRect(cx - 4, py + 2, 8, 2.5);
 
-      // Boots Stepping Forward
-      ctx.fillStyle = '#451a03';
+      // Boots stepping forward
+      ctx.fillStyle = '#0f172a';
       if (!isStep) {
-        ctx.fillRect(cx - 5, py + 24, 4, 6);
-        ctx.fillRect(cx + 1, py + 22, 4, 6);
+        ctx.fillRect(cx - 6, py + 23, 5, 7);
+        ctx.fillRect(cx + 1, py + 21, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx - 5.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx + 1.5, py + 21.5, 4, 6);
       } else {
-        ctx.fillRect(cx - 5, py + 22, 4, 6);
-        ctx.fillRect(cx + 1, py + 24, 4, 6);
+        ctx.fillRect(cx - 6, py + 21, 5, 7);
+        ctx.fillRect(cx + 1, py + 23, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx - 5.5, py + 21.5, 4, 6);
+        ctx.fillRect(cx + 1.5, py + 23.5, 4, 6);
       }
     }
     // ==========================================
     // DIRECTION: LEFT (Side Profile)
     // ==========================================
     else if (dir === 'left') {
-      // Red Cape Billowing Back Right
-      ctx.fillStyle = '#991b1b';
+      // Red Cape Billowing Back Right with Outline
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx + 1, py + 11, 10, 14);
+      ctx.fillStyle = '#7f1d1d';
       ctx.fillRect(cx + 2, py + 12, 8, 12);
       ctx.fillStyle = '#dc2626';
       ctx.fillRect(cx + 3, py + 13, 6, 10);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(cx + 4, py + 14, 4, 8);
 
       // Blue Tunic Profile
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 6, py + 10, 11, 14);
       ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(cx - 5, py + 11, 9, 13);
+      ctx.fillRect(cx - 5, py + 11, 9, 12);
       ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 4, py + 12, 7, 11);
+      ctx.fillRect(cx - 4, py + 12, 7, 10);
 
-      // Gold Pauldron on shoulder
+      // Gold Pauldron
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 3.5, py + 9.5, 5, 4);
       ctx.fillStyle = '#fde047';
       ctx.fillRect(cx - 3, py + 10, 4, 3);
 
-      // Belt
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 5, py + 18, 9, 3);
+      // Leather Belt & Buckle
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(cx - 5, py + 17, 9, 3.5);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 4, py + 17, 3, 4);
+      ctx.fillRect(cx - 4, py + 17, 3, 3.5);
 
-      // Sword Scabbard Extending Back
+      // Sword Scabbard Tilted Back
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 2, py + 16, 10, 4);
       ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(cx - 1, py + 17, 8, 3);
+      ctx.fillRect(cx - 1, py + 17, 8, 2);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 4, py + 16, 4, 4); // Hilt
+      ctx.fillRect(cx - 4, py + 16, 4, 3.5); // Hilt
 
       // Head & Profile Face
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 7, py + 3, 10, 9);
       ctx.fillStyle = '#fed7aa';
-      ctx.fillRect(cx - 6, py + 4, 8, 8);
+      ctx.fillRect(cx - 6, py + 4, 8, 7.5);
       ctx.fillStyle = '#fdba74';
-      ctx.fillRect(cx - 4, py + 11, 5, 2);
+      ctx.fillRect(cx - 4, py + 10, 5, 1.5);
 
       // Hair Spikes Blowing Right
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 7, py, 12, 6);
+      ctx.fillRect(cx + 2, py + 2, 6, 6);
       ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 6, py + 1, 10, 5);
-      ctx.fillRect(cx + 2, py + 3, 5, 5);
+      ctx.fillRect(cx - 6, py + 1, 10, 4);
       ctx.fillStyle = '#78350f';
       ctx.fillRect(cx - 5, py + 2, 8, 3);
 
       // Circlet & Emerald on Forehead
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 6, py + 4, 7, 2);
+      ctx.fillRect(cx - 6.5, py + 3.5, 8, 2);
       ctx.fillStyle = '#10b981';
-      ctx.fillRect(cx - 6, py + 4, 2, 2);
+      ctx.fillRect(cx - 6.5, py + 3.5, 2.5, 2.5);
 
       // Eye
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 5, py + 7, 2, 3);
+      ctx.fillRect(cx - 5.5, py + 6.5, 2.5, 3);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx - 5, py + 7, 1, 1);
+      ctx.fillRect(cx - 5.5, py + 6.5, 1, 1);
 
       // Stepping Boots
-      ctx.fillStyle = '#451a03';
+      ctx.fillStyle = '#0f172a';
       if (!isStep) {
-        ctx.fillRect(cx - 6, py + 24, 4, 6);
-        ctx.fillRect(cx + 1, py + 23, 4, 6);
+        ctx.fillRect(cx - 7, py + 23, 5, 7);
+        ctx.fillRect(cx + 1, py + 22, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx - 6.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx + 1.5, py + 22.5, 4, 6);
       } else {
-        ctx.fillRect(cx - 2, py + 23, 4, 6);
-        ctx.fillRect(cx - 6, py + 24, 4, 6);
+        ctx.fillRect(cx - 3, py + 22, 5, 7);
+        ctx.fillRect(cx - 7, py + 23, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx - 2.5, py + 22.5, 4, 6);
+        ctx.fillRect(cx - 6.5, py + 23.5, 4, 6);
       }
     }
     // ==========================================
@@ -3111,79 +3293,98 @@ class TokyoRpgEngine {
     // ==========================================
     else if (dir === 'right') {
       // Red Cape Billowing Back Left
-      ctx.fillStyle = '#991b1b';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 11, py + 11, 10, 14);
+      ctx.fillStyle = '#7f1d1d';
       ctx.fillRect(cx - 10, py + 12, 8, 12);
       ctx.fillStyle = '#dc2626';
       ctx.fillRect(cx - 9, py + 13, 6, 10);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(cx - 8, py + 14, 4, 8);
 
       // Blue Tunic Profile
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 5, py + 10, 11, 14);
       ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(cx - 4, py + 11, 9, 13);
+      ctx.fillRect(cx - 4, py + 11, 9, 12);
       ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 3, py + 12, 7, 11);
+      ctx.fillRect(cx - 3, py + 12, 7, 10);
 
       // Gold Pauldron
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 1.5, py + 9.5, 5, 4);
       ctx.fillStyle = '#fde047';
       ctx.fillRect(cx - 1, py + 10, 4, 3);
 
-      // Belt
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 4, py + 18, 9, 3);
+      // Leather Belt
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(cx - 4, py + 17, 9, 3.5);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx + 1, py + 17, 3, 4);
+      ctx.fillRect(cx + 1, py + 17, 3, 3.5);
 
-      // Sword Scabbard Extending Back Left
+      // Sword Scabbard Tilted Back Left
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 8, py + 16, 10, 4);
       ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(cx - 7, py + 17, 8, 3);
+      ctx.fillRect(cx - 7, py + 17, 8, 2);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx, py + 16, 4, 4); // Hilt
+      ctx.fillRect(cx, py + 16, 4, 3.5);
 
       // Head & Profile Face
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 3, py + 3, 10, 9);
       ctx.fillStyle = '#fed7aa';
-      ctx.fillRect(cx - 2, py + 4, 8, 8);
+      ctx.fillRect(cx - 2, py + 4, 8, 7.5);
       ctx.fillStyle = '#fdba74';
-      ctx.fillRect(cx - 1, py + 11, 5, 2);
+      ctx.fillRect(cx - 1, py + 10, 5, 1.5);
 
       // Hair Spikes Blowing Left
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 5, py, 12, 6);
+      ctx.fillRect(cx - 8, py + 2, 6, 6);
       ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 4, py + 1, 10, 5);
-      ctx.fillRect(cx - 7, py + 3, 5, 5);
+      ctx.fillRect(cx - 4, py + 1, 10, 4);
       ctx.fillStyle = '#78350f';
       ctx.fillRect(cx - 3, py + 2, 8, 3);
 
       // Circlet & Emerald on Forehead
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 1, py + 4, 7, 2);
+      ctx.fillRect(cx - 1.5, py + 3.5, 8, 2);
       ctx.fillStyle = '#10b981';
-      ctx.fillRect(cx + 4, py + 4, 2, 2);
+      ctx.fillRect(cx + 4, py + 3.5, 2.5, 2.5);
 
       // Eye
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx + 3, py + 7, 2, 3);
+      ctx.fillRect(cx + 3, py + 6.5, 2.5, 3);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx + 4, py + 7, 1, 1);
+      ctx.fillRect(cx + 4.5, py + 6.5, 1, 1);
 
       // Stepping Boots
-      ctx.fillStyle = '#451a03';
+      ctx.fillStyle = '#0f172a';
       if (!isStep) {
-        ctx.fillRect(cx + 2, py + 24, 4, 6);
-        ctx.fillRect(cx - 5, py + 23, 4, 6);
+        ctx.fillRect(cx + 2, py + 23, 5, 7);
+        ctx.fillRect(cx - 6, py + 22, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx + 2.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx - 5.5, py + 22.5, 4, 6);
       } else {
-        ctx.fillRect(cx - 2, py + 23, 4, 6);
-        ctx.fillRect(cx + 2, py + 24, 4, 6);
+        ctx.fillRect(cx - 2, py + 22, 5, 7);
+        ctx.fillRect(cx + 2, py + 23, 5, 7);
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(cx - 1.5, py + 22.5, 4, 6);
+        ctx.fillRect(cx + 2.5, py + 23.5, 4, 6);
       }
     }
 
     ctx.restore();
   }
 
-  // Draw NPC Sprite with High-Precision Costumes (Guards, Engineers, Dignitaries)
+  // Draw NPC Sprite with Ultra-Fine 4x Micro-Density Costumes (Aide, Guards, Engineers)
   renderNpcSprite(ctx, nx, ny, spriteType) {
     ctx.save();
     const cx = nx + this.tileSize / 2;
     const cy = ny + this.tileSize / 2;
 
-    // Ground Shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     ctx.beginPath();
     ctx.ellipse(cx, ny + this.tileSize - 3, 9, 4, 0, 0, Math.PI * 2);
@@ -3197,128 +3398,156 @@ class TokyoRpgEngine {
     // 1. GUARD / KNIGHT (黒服の用心棒 / 警備兵)
     // ==========================================
     if (isGuard) {
-      // Plate Armor Body
-      ctx.fillStyle = '#334155'; // Dark steel shadow
-      ctx.fillRect(cx - 7, ny + 10, 14, 14);
-      ctx.fillStyle = '#64748b'; // Polished steel cuirass
-      ctx.fillRect(cx - 6, ny + 11, 12, 12);
-      ctx.fillStyle = '#cbd5e1'; // Metallic highlight line
-      ctx.fillRect(cx - 2, ny + 12, 4, 10);
+      // Plate Armor Body with Dark Outline
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 8, ny + 9, 16, 15);
+
+      ctx.fillStyle = '#1e293b'; // Shadow steel
+      ctx.fillRect(cx - 7, ny + 10, 14, 13);
+      ctx.fillStyle = '#475569'; // Midtone steel
+      ctx.fillRect(cx - 6, ny + 11, 12, 11);
+      ctx.fillStyle = '#94a3b8'; // Specular cuirass shine
+      ctx.fillRect(cx - 3, ny + 12, 6, 8);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(cx - 2, ny + 13, 2, 4);
 
       // Red Tabbard Trim
       ctx.fillStyle = '#dc2626';
-      ctx.fillRect(cx - 7, ny + 20, 14, 4);
+      ctx.fillRect(cx - 7, ny + 20, 14, 3);
 
-      // Long Halberd Spear in Right Hand
-      ctx.fillStyle = '#78350f'; // Wooden shaft
+      // Long Halberd Spear in Right Hand (Steel spearhead with pennant)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx + 6, ny - 7, 5, 34);
+      ctx.fillStyle = '#78350f'; // Shaft
       ctx.fillRect(cx + 7, ny - 2, 2, 28);
-      ctx.fillStyle = '#dc2626'; // Red pennant ribbon
+      ctx.fillStyle = '#dc2626'; // Ribbon
       ctx.fillRect(cx + 8, ny + 2, 5, 3);
-      ctx.fillStyle = '#cbd5e1'; // Gleaming silver spearhead
+      ctx.fillStyle = '#cbd5e1'; // Silver blade
       ctx.fillRect(cx + 6, ny - 6, 4, 6);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(cx + 7, ny - 6, 2, 3);
 
-      // Knight Sallet Helmet with Red Horsehair Crest
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(cx - 6, ny + 2, 12, 9);
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(cx - 5, ny + 3, 10, 7);
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(cx - 4, ny + 2, 8, 2);
-
-      // Visor Eye Slit
+      // Knight Sallet Helmet with Scarlet Plume
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 4, ny + 6, 8, 2);
+      ctx.fillRect(cx - 7, ny + 1, 14, 10);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(cx - 6, ny + 2, 12, 8);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(cx - 5, ny + 2, 10, 3);
+
+      // Eye Slit Visor
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 4.5, ny + 6, 9, 2);
 
       // Scarlet Helmet Plume
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(cx - 2.5, ny - 5, 5, 7);
       ctx.fillStyle = '#dc2626';
-      ctx.fillRect(cx - 2, ny - 4, 4, 6);
+      ctx.fillRect(cx - 2, ny - 4, 4, 5);
       ctx.fillStyle = '#f87171';
-      ctx.fillRect(cx - 1, ny - 4, 2, 4);
+      ctx.fillRect(cx - 1, ny - 4, 2, 3);
 
       // Armored Greaves / Boots
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(cx - 5, ny + 24, 4, 6);
-      ctx.fillRect(cx + 1, ny + 24, 4, 6);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 6, ny + 23, 5, 7);
+      ctx.fillRect(cx + 1, ny + 23, 5, 7);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(cx - 5.5, ny + 23.5, 4, 6);
+      ctx.fillRect(cx + 1.5, ny + 23.5, 4, 6);
     }
     // ==========================================
     // 2. ENGINEER (秋葉原工学技師)
     // ==========================================
     else if (isEngineer) {
-      // Leather Work Apron over Work Shirt
-      ctx.fillStyle = '#d97706';
-      ctx.fillRect(cx - 7, ny + 10, 14, 14);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 8, ny + 9, 16, 15);
+
+      ctx.fillStyle = '#d97706'; // Work shirt
+      ctx.fillRect(cx - 7, ny + 10, 14, 13);
       ctx.fillStyle = '#78350f'; // Heavy apron
-      ctx.fillRect(cx - 5, ny + 12, 10, 12);
-      ctx.fillStyle = '#fde047'; // Brass tool in pocket
+      ctx.fillRect(cx - 5, ny + 12, 10, 11);
+      ctx.fillStyle = '#fde047'; // Brass tool
       ctx.fillRect(cx + 1, ny + 14, 2, 4);
 
-      // Face
-      ctx.fillStyle = '#fed7aa';
+      ctx.fillStyle = '#fed7aa'; // Face
       ctx.fillRect(cx - 5, ny + 4, 10, 8);
 
       // Brown Cap with Brass Goggles
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 7, ny, 14, 6);
       ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 6, ny + 1, 12, 5);
+      ctx.fillRect(cx - 6, ny + 1, 12, 4);
       // Goggles
       ctx.fillStyle = '#eab308';
       ctx.fillRect(cx - 5, ny + 3, 4, 3);
       ctx.fillRect(cx + 1, ny + 3, 4, 3);
-      ctx.fillStyle = '#38bdf8'; // Glass reflection
+      ctx.fillStyle = '#38bdf8';
       ctx.fillRect(cx - 4, ny + 4, 2, 1.5);
       ctx.fillRect(cx + 2, ny + 4, 2, 1.5);
 
-      // Eyes & Beard
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(cx - 4, ny + 7, 2, 2);
       ctx.fillRect(cx + 2, ny + 7, 2, 2);
       ctx.fillStyle = '#78350f';
       ctx.fillRect(cx - 4, ny + 10, 8, 2); // Beard
 
-      // Boots
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 6, ny + 23, 5, 7);
+      ctx.fillRect(cx + 1, ny + 23, 5, 7);
       ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 5, ny + 24, 4, 6);
-      ctx.fillRect(cx + 1, ny + 24, 4, 6);
+      ctx.fillRect(cx - 5.5, ny + 23.5, 4, 6);
+      ctx.fillRect(cx + 1.5, ny + 23.5, 4, 6);
     }
     // ==========================================
     // 3. DIGNITARY / NIGHT EMPEROR'S AIDE (夜皇の側近)
     // ==========================================
     else {
-      // Regal Crimson Officer Coat with Gold Frogging
-      ctx.fillStyle = '#991b1b';
-      ctx.fillRect(cx - 7, ny + 10, 14, 14);
-      ctx.fillStyle = '#dc2626';
-      ctx.fillRect(cx - 6, ny + 11, 12, 12);
+      // Crimson Double-Breasted Commander Coat with Dark Outline
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 8, ny + 9, 16, 15);
 
-      // Golden Braided Aiguillette & Buttons
+      ctx.fillStyle = '#7f1d1d';
+      ctx.fillRect(cx - 7, ny + 10, 14, 13);
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(cx - 6, ny + 11, 12, 11);
+
+      // Golden Braided Aiguillette & Double Row of Frogging Buttons
       ctx.fillStyle = '#fde047';
       ctx.fillRect(cx - 1, ny + 12, 2, 9);
-      ctx.fillRect(cx - 4, ny + 13, 8, 1.5);
-      ctx.fillRect(cx - 4, ny + 16, 8, 1.5);
-      ctx.fillRect(cx - 4, ny + 19, 8, 1.5);
+      ctx.fillRect(cx - 5, ny + 13, 10, 1.5);
+      ctx.fillRect(cx - 5, ny + 16, 10, 1.5);
+      ctx.fillRect(cx - 5, ny + 19, 10, 1.5);
 
       // Gold Epaulettes with Tassels on shoulders
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 9, ny + 9.5, 4, 4.5);
+      ctx.fillRect(cx + 5, ny + 9.5, 4, 4.5);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 8, ny + 10, 3, 4);
-      ctx.fillRect(cx + 5, ny + 10, 3, 4);
+      ctx.fillRect(cx - 8.5, py + 10, 3, 3);
+      ctx.fillRect(cx + 5.5, py + 10, 3, 3);
 
       // White Dress Gloves
       ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(cx - 8, ny + 18, 3, 4);
-      ctx.fillRect(cx + 5, ny + 18, 3, 4);
+      ctx.fillRect(cx - 8, ny + 17, 3, 4);
+      ctx.fillRect(cx + 5, ny + 17, 3, 4);
 
       // Head & Distinguished Face
-      ctx.fillStyle = '#fed7aa';
-      ctx.fillRect(cx - 5, ny + 4, 10, 8);
-
-      // Black Peaked Military Cap with Gold Cockade
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 6, ny + 1, 12, 4); // Crown
+      ctx.fillRect(cx - 6, ny + 3, 12, 9);
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(cx - 5, ny + 4, 10, 7.5);
+      ctx.fillStyle = '#fdba74';
+      ctx.fillRect(cx - 4, ny + 10, 8, 1.5);
+
+      // Black Peaked Military Cap with Gold Cockade & Shiny Visor
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 7, ny, 14, 6);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(cx - 6, ny + 1, 12, 3.5);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 6, ny + 4, 12, 1.5); // Gold band
+      ctx.fillRect(cx - 6, ny + 4, 12, 1.5); // Gold cockade band
       ctx.fillStyle = '#000000';
-      ctx.fillRect(cx - 7, ny + 5, 14, 2); // Visor
+      ctx.fillRect(cx - 7.5, ny + 5.5, 15, 2); // Black visor
 
       // Sharp Eyes
       ctx.fillStyle = '#0f172a';
@@ -3328,13 +3557,13 @@ class TokyoRpgEngine {
       ctx.fillRect(cx - 4, ny + 7, 1, 1);
       ctx.fillRect(cx + 2, ny + 7, 1, 1);
 
-      // Polished Black Riding Boots
+      // Polished Black Riding Boots with Leather Gloss
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 5, ny + 24, 4, 6);
-      ctx.fillRect(cx + 1, ny + 24, 4, 6);
-      ctx.fillStyle = '#64748b'; // Leather shine
+      ctx.fillRect(cx - 6, ny + 23, 5, 7);
+      ctx.fillRect(cx + 1, ny + 23, 5, 7);
+      ctx.fillStyle = '#64748b'; // Leather gloss reflection
       ctx.fillRect(cx - 5, ny + 24, 1, 4);
-      ctx.fillRect(cx + 1, ny + 24, 1, 4);
+      ctx.fillRect(cx + 2, ny + 24, 1, 4);
     }
 
     ctx.restore();
