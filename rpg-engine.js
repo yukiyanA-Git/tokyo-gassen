@@ -895,8 +895,12 @@ class TokyoRpgEngine {
   // --- UPDATE LOOP ---
   startLoop() {
     const loop = () => {
-      this.update();
-      this.render();
+      try {
+        this.update();
+        this.render();
+      } catch (err) {
+        console.error('Error in RPG engine loop:', err);
+      }
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
@@ -3523,8 +3527,8 @@ class TokyoRpgEngine {
       ctx.fillRect(cx - 9, ny + 9.5, 4, 4.5);
       ctx.fillRect(cx + 5, ny + 9.5, 4, 4.5);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 8.5, py + 10, 3, 3);
-      ctx.fillRect(cx + 5.5, py + 10, 3, 3);
+      ctx.fillRect(cx - 8.5, ny + 10, 3, 3);
+      ctx.fillRect(cx + 5.5, ny + 10, 3, 3);
 
       // White Dress Gloves
       ctx.fillStyle = '#f8fafc';
