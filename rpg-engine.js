@@ -1709,6 +1709,22 @@ class TokyoRpgEngine {
         }
       });
 
+      // Pre-bake Innkeeper (24x28)
+      const innkeeperCanv = this.createOffscreen(24, 28);
+      if (innkeeperCanv) {
+        const ctx = innkeeperCanv.getContext('2d');
+        this.drawDq3InnkeeperSprite(ctx, 2, 4);
+        this.spriteCache.innkeeper = innkeeperCanv;
+      }
+
+      // Pre-bake Merchant (24x28)
+      const merchantCanv = this.createOffscreen(24, 28);
+      if (merchantCanv) {
+        const ctx = merchantCanv.getContext('2d');
+        this.drawDq3MerchantSprite(ctx, 2, 4);
+        this.spriteCache.merchant = merchantCanv;
+      }
+
       console.log('Offscreen Tile & Sprite Caches pre-baked successfully! (GPU-less 60FPS mode active)');
     } catch(err) {
       console.warn('Failed to initialize offscreen caches, will fall back to live render:', err);
@@ -1857,7 +1873,7 @@ class TokyoRpgEngine {
     });
 
     // 8. Render Dynamic Citizens (Scaled 1 - 7 based on Tier)
-    this.renderDynamicCitizens(ctx, area, tier);
+    // (Obsolete primitive block citizens removed; populated via populateTownByPopulation)
   }
 
   // =========================================================================
@@ -2598,7 +2614,11 @@ class TokyoRpgEngine {
     ctx.fillRect(cntX + 28, cntY + 3, 9, 6);
 
     // Innkeeper standing behind counter at (5, 5)
-    this.drawDq3InnkeeperSprite(ctx, cntX + 12, cntY - 18);
+    if (this.spriteCache && this.spriteCache.innkeeper) {
+      ctx.drawImage(this.spriteCache.innkeeper, cntX + 12 - 2, cntY - 18 - 4);
+    } else {
+      this.drawDq3InnkeeperSprite(ctx, cntX + 12, cntY - 18);
+    }
 
     // Hanging Wooden Signboard outside wall
     const sgnX = bx + 4;
@@ -2675,19 +2695,73 @@ class TokyoRpgEngine {
     ctx.fillRect(bx + 3, by + 14, bw - 6, 1);
   }
 
-  // Draw Friendly Green-Tunic Innkeeper
+  // Draw Friendly Green-Tunic Innkeeper (32x High-Detail DQ3 Style)
   drawDq3InnkeeperSprite(ctx, x, y) {
-    ctx.fillStyle = '#15803d';
-    ctx.fillRect(x + 2, y + 8, 14, 12);
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(x + 4, y + 10, 10, 10);
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(x + 3, y + 2, 12, 8);
-    ctx.fillStyle = '#16a34a';
-    ctx.fillRect(x + 2, y, 14, 4);
+    ctx.save();
+    // 1. Dark Contour Outline
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(x + 5, y + 5, 2, 2);
-    ctx.fillRect(x + 10, y + 5, 2, 2);
+    ctx.fillRect(x - 1, y - 2, 22, 24);
+
+    // 2. Forest Green Hospitality Vest (4-Tier Drapery)
+    ctx.fillStyle = '#14532d'; // Deep shadow
+    ctx.fillRect(x, y + 6, 20, 15);
+    ctx.fillStyle = '#15803d'; // Midtone green
+    ctx.fillRect(x + 1, y + 7, 18, 13);
+    ctx.fillStyle = '#22c55e'; // Highlight fold
+    ctx.fillRect(x + 2, y + 8, 4, 11);
+    ctx.fillRect(x + 14, y + 8, 4, 11);
+
+    // 3. Crisp White Collared Under-Shirt & Apron
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(x + 5, y + 8, 10, 12);
+    ctx.fillStyle = '#e2e8f0'; // Apron shadow folds
+    ctx.fillRect(x + 6, y + 12, 8, 8);
+    // Gold buttons on vest
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(x + 4, y + 9, 1.5, 1.5);
+    ctx.fillRect(x + 4, y + 12, 1.5, 1.5);
+    ctx.fillRect(x + 4, y + 15, 1.5, 1.5);
+    // Brass Key Ring at Waist (Room Keys!)
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(x + 13, y + 16, 3, 4);
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(x + 14, y + 18, 1, 3);
+
+    // 4. Hospitable Warm Face & Cheeks
+    ctx.fillStyle = '#fed7aa'; // Skin tone
+    ctx.fillRect(x + 3, y + 1, 14, 8);
+    ctx.fillStyle = '#fdba74'; // Chin shadow
+    ctx.fillRect(x + 4, y + 7, 12, 2);
+    ctx.fillStyle = '#f472b6'; // Cheerful pink cheeks
+    ctx.fillRect(x + 3, y + 5, 2, 1.5);
+    ctx.fillRect(x + 15, y + 5, 2, 1.5);
+
+    // 5. Friendly Eyes, Eyebrows & Smile
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(x + 6, y + 4, 2, 2.5);
+    ctx.fillRect(x + 12, y + 4, 2, 2.5);
+    ctx.fillStyle = '#ffffff'; // Catchlights
+    ctx.fillRect(x + 6, y + 4, 1, 1);
+    ctx.fillRect(x + 12, y + 4, 1, 1);
+    // Smile
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(x + 8, y + 7, 4, 1);
+
+    // 6. Innkeeper Bonnet / Cap with Golden Trim
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(x + 2, y - 2, 16, 4);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(x + 3, y - 1, 14, 2);
+    ctx.fillStyle = '#fde047'; // Gold cap brim band
+    ctx.fillRect(x + 2, y + 1, 16, 1.5);
+
+    // 7. Linen Towel Draped over Shoulder
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(x + 1, y + 6, 3, 9);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(x + 1, y + 13, 3, 2);
+
+    ctx.restore();
   }
 
   // 2. SFC DQ3 SHOP (Checkerboard Tiles, Armory Displays, Counter & Merchant)
@@ -2746,7 +2820,11 @@ class TokyoRpgEngine {
     ctx.fillRect(cntX + 36, cntY + 3, 7, 5);
 
     // Merchant NPC standing behind counter at (17, 4)
-    this.drawDq3MerchantSprite(ctx, cntX + 18, cntY - 18);
+    if (this.spriteCache && this.spriteCache.merchant) {
+      ctx.drawImage(this.spriteCache.merchant, cntX + 18 - 2, cntY - 18 - 4);
+    } else {
+      this.drawDq3MerchantSprite(ctx, cntX + 18, cntY - 18);
+    }
 
     // Corner Props: Heavy Chest & Supply Barrels
     this.drawDq3Chest(ctx, floorX + 4, floorY + floorH - 22);
@@ -2856,20 +2934,76 @@ class TokyoRpgEngine {
     ctx.fillRect(x + 7, y + 4, 4, 4);
   }
 
-  // Draw Merchant Sprite in Purple Robe & Turban
+  // Draw Merchant Sprite in Purple Robe & Turban (32x High-Detail DQ3 Style)
   drawDq3MerchantSprite(ctx, x, y) {
-    ctx.fillStyle = '#7c3aed';
-    ctx.fillRect(x + 2, y + 8, 14, 12);
+    ctx.save();
+    // 1. Dark Contour Outline
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(x - 1, y - 4, 22, 26);
+
+    // 2. Royal Purple Merchant Robe (4-Tier Velvet Drape)
+    ctx.fillStyle = '#3b0764'; // Deep shadow crevice
+    ctx.fillRect(x, y + 6, 20, 16);
+    ctx.fillStyle = '#581c87'; // Midtone shadow
+    ctx.fillRect(x + 1, y + 7, 18, 14);
+    ctx.fillStyle = '#7e22ce'; // Royal purple robe body
+    ctx.fillRect(x + 2, y + 8, 16, 12);
+    ctx.fillStyle = '#a855f7'; // Fabric sheen highlight
+    ctx.fillRect(x + 3, y + 9, 3, 10);
+    ctx.fillRect(x + 14, y + 9, 3, 10);
+
+    // 3. Gold Damask Embroidery Trim along Robe Front
+    ctx.fillStyle = '#ca8a04';
+    ctx.fillRect(x + 8, y + 8, 4, 14);
+    ctx.fillStyle = '#fde047'; // Pure gold core
+    ctx.fillRect(x + 9, y + 8, 2, 14);
+    // Gold buttons
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 9.5, y + 10, 1, 1);
+    ctx.fillRect(x + 9.5, y + 13, 1, 1);
+    ctx.fillRect(x + 9.5, y + 16, 1, 1);
+
+    // 4. Gold Satin Sash at Waist
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(x + 1, y + 14, 18, 3.5);
     ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(x + 2, y + 12, 14, 3);
-    ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(x + 3, y + 2, 12, 8);
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(x + 2, y - 2, 14, 6);
-    ctx.fillStyle = '#dc2626';
-    ctx.fillRect(x + 7, y - 1, 4, 3);
+    ctx.fillRect(x + 2, y + 14.5, 16, 2);
+    ctx.fillStyle = '#fef08a';
+    ctx.fillRect(x + 3, y + 15, 14, 1);
+
+    // 5. Merchant Face, Shrewd Eyes & Groomed Moustache
+    ctx.fillStyle = '#fed7aa'; // Skin tone
+    ctx.fillRect(x + 3, y + 1, 14, 8);
+    ctx.fillStyle = '#fdba74';
+    ctx.fillRect(x + 4, y + 7, 12, 2);
+    // Shrewd Eyes with Gold Glint
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(x + 6, y + 4, 2, 2.5);
+    ctx.fillRect(x + 12, y + 4, 2, 2.5);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 6, y + 4, 1, 1);
+    ctx.fillRect(x + 12, y + 4, 1, 1);
+    // Well-groomed dark brown curl moustache
     ctx.fillStyle = '#451a03';
-    ctx.fillRect(x + 5, y + 7, 8, 2);
+    ctx.fillRect(x + 6, y + 7, 8, 2);
+    ctx.fillRect(x + 5, y + 8, 10, 1);
+
+    // 6. Voluminous Silk Turban with Ruby Brooch
+    ctx.fillStyle = '#f8fafc'; // White silk turban base
+    ctx.fillRect(x + 1, y - 4, 18, 6);
+    ctx.fillStyle = '#e2e8f0'; // Turban silk folds
+    ctx.fillRect(x + 2, y - 3, 16, 4);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(x + 3, y - 2, 14, 2);
+    // Golden Brooch with Radiant Ruby
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(x + 8, y - 3, 4, 4);
+    ctx.fillStyle = '#dc2626'; // Ruby gem
+    ctx.fillRect(x + 9, y - 2, 2, 2);
+    ctx.fillStyle = '#ffffff'; // Sparkle
+    ctx.fillRect(x + 9, y - 2, 1, 1);
+
+    ctx.restore();
   }
 
   // 3. SPECIALTY PRODUCTION FACTORY (Hearth, Chimney with smoke, Anvil & Craftsman)
@@ -2958,15 +3092,62 @@ class TokyoRpgEngine {
     ctx.fillStyle = '#0284c7';
     ctx.fillRect(floorX + floorW - 28, floorY + floorH - 18, 18, 6);
 
-    // 5. Master Artisan Craftsman NPC
-    ctx.fillStyle = '#ea580c';
-    ctx.fillRect(floorX + 22, floorY + floorH - 24, 14, 14);
+    // 5. Master Artisan Craftsman NPC (32x High-Detail Blacksmith)
+    const cfx = floorX + 20;
+    const cfy = floorY + floorH - 36;
+    ctx.save();
+    // Contour outline
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(cfx - 1, cfy - 1, 20, 26);
+
+    // Muscular Denim Arms & Shirt
+    ctx.fillStyle = '#1e3a8a';
+    ctx.fillRect(cfx, cfy + 8, 18, 16);
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(cfx + 1, cfy + 9, 16, 14);
+
+    // Heavy Stitched Blacksmith Leather Apron
+    ctx.fillStyle = '#3a1906';
+    ctx.fillRect(cfx + 3, cfy + 9, 12, 15);
     ctx.fillStyle = '#78350f';
-    ctx.fillRect(floorX + 24, floorY + floorH - 22, 10, 12);
+    ctx.fillRect(cfx + 4, cfy + 10, 10, 13);
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(cfx + 5, cfy + 11, 8, 11);
+    // Brass rivet studs on apron
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(cfx + 4, cfy + 11, 1, 1);
+    ctx.fillRect(cfx + 13, cfy + 11, 1, 1);
+    // Tool in Hand (Forging Tongs)
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(cfx + 15, cfy + 12, 2, 9);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(cfx + 15, cfy + 10, 3, 2);
+
+    // Weathered Craftsman Face with Beard
     ctx.fillStyle = '#fed7aa';
-    ctx.fillRect(floorX + 23, floorY + floorH - 32, 12, 9);
+    ctx.fillRect(cfx + 3, cfy + 1, 12, 8);
+    ctx.fillStyle = '#fdba74';
+    ctx.fillRect(cfx + 4, cfy + 6, 10, 3);
+    // Eyes
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(cfx + 5, cfy + 3, 2, 2);
+    ctx.fillRect(cfx + 11, cfy + 3, 2, 2);
+    // Full Gray-Brown Blacksmith Beard
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(cfx + 4, cfy + 6, 10, 4);
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(cfx + 5, cfy + 7, 8, 2);
+
+    // Red Artisan Bandana on Head
+    ctx.fillStyle = '#991b1b';
+    ctx.fillRect(cfx + 2, cfy - 1, 14, 4);
     ctx.fillStyle = '#dc2626';
-    ctx.fillRect(floorX + 22, floorY + floorH - 34, 14, 4);
+    ctx.fillRect(cfx + 3, cfy, 12, 2);
+    // Knot tie on side
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(cfx + 15, cfy, 2, 3);
+
+    ctx.restore();
 
     // 6. Hanging Wooden Factory Sign
     const sgnX = bx + 4;
@@ -3308,439 +3489,440 @@ class TokyoRpgEngine {
     // 1. Soft Oval Ground Ambient Occlusion Shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     ctx.beginPath();
-    ctx.ellipse(cx, py + this.tileSize - 3, 9, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, py + this.tileSize - 3, 10, 4.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // ==========================================
-    // DIRECTION: DOWN (Facing Front / Camera)
+    // DIRECTION: DOWN (Facing Camera / Front)
     // ==========================================
     if (dir === 'down') {
-      // --- 1. Red Velvet Cape with Gold Satin Lining & 4-Tier Drapery ---
-      ctx.fillStyle = '#0f172a'; // Contour outline
-      ctx.fillRect(cx - 11, py + 11, 22, 15);
+      // --- 1. Red Velvet Cape with Gold Satin Lining & Flared Hem ---
+      ctx.fillStyle = '#0f172a'; // Crisp Dark Perimeter Outline
+      ctx.fillRect(cx - 12, py + 10, 24, 16);
 
-      // Gold Satin Inner Lining (revealed at bottom edge and side folds)
-      ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(cx - 10, py + 23, 20, 3);
+      // Gold Satin Inner Hem (Visible along lower flared corners)
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 9, py + 24, 18, 1.5);
+      ctx.fillRect(cx - 11, py + 23, 22, 2.5);
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 10, py + 22, 20, 1);
 
-      // Deep Shadow Crevices (ambient occlusion in fabric folds)
-      ctx.fillStyle = '#450a0a';
-      ctx.fillRect(cx - 10, py + 12, 20, 11);
-      // Mid-Shadow Velvet
-      ctx.fillStyle = '#7f1d1d';
-      ctx.fillRect(cx - 9, py + 13, 18, 9);
-      // Base Crimson Cloth
-      ctx.fillStyle = '#b91c1c';
-      ctx.fillRect(cx - 8, py + 14, 16, 7);
-      // Vibrant Red Surface
-      ctx.fillStyle = '#dc2626';
-      ctx.fillRect(cx - 7, py + 14, 14, 5);
-      // Highlight Drapery Folds (Left & Right crests)
+      // 4-Tier Velvet Shading
+      ctx.fillStyle = '#450a0a'; // Deep crease shadow
+      ctx.fillRect(cx - 11, py + 11, 22, 11);
+      ctx.fillStyle = '#7f1d1d'; // Mid-dark velvet
+      ctx.fillRect(cx - 10, py + 12, 20, 9);
+      ctx.fillStyle = '#b91c1c'; // Body crimson
+      ctx.fillRect(cx - 9, py + 13, 18, 7);
+      ctx.fillStyle = '#dc2626'; // Vibrant scarlet
+      ctx.fillRect(cx - 8, py + 13.5, 16, 5);
+
+      // Flank Drapery Folds (Bright highlight crests)
       ctx.fillStyle = '#ef4444';
-      ctx.fillRect(cx - 9, py + 14, 2, 8);
-      ctx.fillRect(cx + 7, py + 14, 2, 8);
-      ctx.fillStyle = '#f87171'; // Peak sheen
-      ctx.fillRect(cx - 9, py + 15, 1, 5);
-      ctx.fillRect(cx + 8, py + 15, 1, 5);
+      ctx.fillRect(cx - 10, py + 13, 3, 9);
+      ctx.fillRect(cx + 7, py + 13, 3, 9);
+      ctx.fillStyle = '#fca5a5'; // Edge sheen
+      ctx.fillRect(cx - 10, py + 14, 1.5, 6);
+      ctx.fillRect(cx + 8.5, py + 14, 1.5, 6);
 
-      // --- 2. Royal Blue Tunic with 4-Tier Shading & Gold Heraldic Embroidery ---
-      ctx.fillStyle = '#0f172a'; // Tunic outline
-      ctx.fillRect(cx - 8, py + 10, 16, 14);
+      // --- 2. Royal Blue Tunic with Gold Falcon Heraldry & 4-Tier Shading ---
+      ctx.fillStyle = '#0f172a'; // Tunic Outline
+      ctx.fillRect(cx - 8.5, py + 9.5, 17, 14.5);
 
-      // Deep Indigo Crevice
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 7, py + 11, 14, 12);
-      ctx.fillStyle = '#172554';
-      ctx.fillRect(cx - 7, py + 11, 14, 12);
-      // Shadow Indigo
-      ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(cx - 6.5, py + 11.5, 13, 11);
-      // Royal Cobalt Fabric
-      ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 6, py + 12, 12, 10);
-      // Chest Weave Highlight
-      ctx.fillStyle = '#3b82f6';
-      ctx.fillRect(cx - 4.5, py + 12.5, 9, 3);
-      ctx.fillStyle = '#60a5fa'; // Light fold crest
-      ctx.fillRect(cx - 3, py + 13, 6, 1.5);
+      ctx.fillStyle = '#172554'; // Deep Indigo Shadow
+      ctx.fillRect(cx - 7.5, py + 10.5, 15, 12.5);
+      ctx.fillStyle = '#1e3a8a'; // Midtone Blue
+      ctx.fillRect(cx - 7, py + 11, 14, 11);
+      ctx.fillStyle = '#2563eb'; // Vibrant Royal Blue
+      ctx.fillRect(cx - 6, py + 11.5, 12, 10);
+      ctx.fillStyle = '#3b82f6'; // Chest Fold Highlight
+      ctx.fillRect(cx - 4.5, py + 12, 9, 3.5);
+      ctx.fillStyle = '#60a5fa'; // Specular ridge
+      ctx.fillRect(cx - 3, py + 12.5, 6, 1.5);
 
-      // Gold Heraldic Crest (Tokyo Falcon / Eagle with Golden Wings on Chest)
+      // High-Contrast Golden Heraldic Crest (Radiant Tokyo Falcon on Chest)
       ctx.fillStyle = '#854d0e'; // Antique gold shadow
-      ctx.fillRect(cx - 4, py + 14, 8, 3.5);
-      ctx.fillRect(cx - 1.5, py + 12.5, 3, 6);
-      ctx.fillStyle = '#eab308'; // Pure gold body
-      ctx.fillRect(cx - 3.5, py + 14.5, 7, 2.5);
-      ctx.fillRect(cx - 1, py + 13, 2, 5);
-      ctx.fillStyle = '#fef08a'; // Diamond glitter core
-      ctx.fillRect(cx - 0.5, py + 13.5, 1, 2);
-      ctx.fillRect(cx - 2, py + 15, 4, 1);
+      ctx.fillRect(cx - 4.5, py + 13, 9, 4);
+      ctx.fillRect(cx - 2, py + 12, 4, 6);
+      ctx.fillStyle = '#eab308'; // Gleaming gold
+      ctx.fillRect(cx - 4, py + 13.5, 8, 3);
+      ctx.fillRect(cx - 1.5, py + 12.5, 3, 5);
+      ctx.fillStyle = '#fef08a'; // Brilliant gold core
+      ctx.fillRect(cx - 3, py + 14, 6, 1.5);
+      ctx.fillRect(cx - 1, py + 13, 2, 3);
+      ctx.fillStyle = '#ffffff'; // Diamond center glint
+      ctx.fillRect(cx - 0.5, py + 13.5, 1, 1.5);
 
       // Golden Hem Embroidery at Bottom of Tunic
-      ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 5, py + 21, 10, 1);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 4, py + 21, 2, 1);
-      ctx.fillRect(cx + 2, py + 21, 2, 1);
+      ctx.fillRect(cx - 6, py + 21, 12, 1.5);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(cx - 5, py + 21, 2, 1);
+      ctx.fillRect(cx + 3, py + 21, 2, 1);
 
-      // --- 3. Metallic Steel Pauldrons with Gold Trim & Specular Reflection ---
-      // Left Shoulder Pauldron
+      // --- 3. Curved Steel Pauldrons with Gold Rim & Specular Glint ---
+      // Left Shoulder
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 11, py + 9, 5.5, 5.5);
-      ctx.fillStyle = '#ca8a04'; // Gold border
-      ctx.fillRect(cx - 10.5, py + 9.5, 4.5, 4.5);
+      ctx.fillRect(cx - 11.5, py + 8.5, 6, 6);
+      ctx.fillStyle = '#eab308'; // Gold rim
+      ctx.fillRect(cx - 11, py + 9, 5, 5);
       ctx.fillStyle = '#475569'; // Steel base
-      ctx.fillRect(cx - 10, py + 10, 3.5, 3.5);
-      ctx.fillStyle = '#94a3b8'; // Mid specular
-      ctx.fillRect(cx - 9.5, py + 10, 2.5, 2.5);
-      ctx.fillStyle = '#ffffff'; // Sharp sunlight flash
-      ctx.fillRect(cx - 9.5, py + 10, 1.5, 1.5);
+      ctx.fillRect(cx - 10.5, py + 9.5, 4, 4);
+      ctx.fillStyle = '#94a3b8'; // Steel midtone
+      ctx.fillRect(cx - 10, py + 10, 3, 3);
+      ctx.fillStyle = '#ffffff'; // Sun glint
+      ctx.fillRect(cx - 10, py + 10, 1.5, 1.5);
 
-      // Right Shoulder Pauldron
+      // Right Shoulder
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx + 5.5, py + 9, 5.5, 5.5);
-      ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(cx + 6, py + 9.5, 4.5, 4.5);
+      ctx.fillRect(cx + 5.5, py + 8.5, 6, 6);
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(cx + 6, py + 9, 5, 5);
       ctx.fillStyle = '#475569';
-      ctx.fillRect(cx + 6.5, py + 10, 3.5, 3.5);
+      ctx.fillRect(cx + 6.5, py + 9.5, 4, 4);
       ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(cx + 7, py + 10, 2.5, 2.5);
+      ctx.fillRect(cx + 7, py + 10, 3, 3);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(cx + 7, py + 10, 1.5, 1.5);
 
-      // --- 4. Stitched Dual Leather Belts with Brass Buckle & Pouch ---
-      // Upper Harness Cross-Strap
-      ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 5, py + 13, 10, 1.5);
+      // --- 4. Stitched Double Leather Harness & Heavy Brass Buckle ---
+      // Upper Cross-Strap
+      ctx.fillStyle = '#3a1906';
+      ctx.fillRect(cx - 5.5, py + 12.5, 11, 2);
       ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 4, py + 13, 8, 1);
-      // Main Waist Belt (stitched edges)
-      ctx.fillStyle = '#291102'; // Deep crevice
-      ctx.fillRect(cx - 6, py + 17, 12, 4);
-      ctx.fillStyle = '#451a03'; // Brown leather body
-      ctx.fillRect(cx - 5.5, py + 17.5, 11, 3);
-      ctx.fillStyle = '#78350f'; // Stitched seam
-      ctx.fillRect(cx - 5, py + 18, 10, 1);
-      // Heavy Brass Buckle
-      ctx.fillStyle = '#854d0e';
-      ctx.fillRect(cx - 2.5, py + 16.5, 5, 4.5);
-      ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 2, py + 17, 4, 3.5);
-      ctx.fillStyle = '#fef08a';
-      ctx.fillRect(cx - 2, py + 17, 1.5, 1.5);
-      ctx.fillStyle = '#0f172a'; // Tongue pin
-      ctx.fillRect(cx - 0.5, py + 18, 1, 2);
-      // Right Hip Leather Pouch (with brass stud)
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx + 4, py + 17.5, 3, 4);
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx + 4.5, py + 18, 2, 3);
-      ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx + 5, py + 19, 1, 1);
+      ctx.fillRect(cx - 5, py + 13, 10, 1);
 
-      // --- 5. Sheathed Longsword on Left Hip (Sapphire Pommel & Scabbard Rings) ---
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 10.5, py + 15, 4.5, 11);
-      ctx.fillStyle = '#475569'; // Steel/Leather scabbard
-      ctx.fillRect(cx - 10, py + 16, 3, 9);
-      ctx.fillStyle = '#94a3b8'; // Scabbard ridge
-      ctx.fillRect(cx - 9.5, py + 16, 1, 9);
-      // Brass Locket & Chape
+      // Main Waist Belt (Stitched Leather)
+      ctx.fillStyle = '#291102';
+      ctx.fillRect(cx - 7, py + 17, 14, 4.5);
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(cx - 6.5, py + 17.5, 13, 3.5);
+      ctx.fillStyle = '#78350f'; // Stitched seam
+      ctx.fillRect(cx - 6, py + 18, 12, 1.5);
+
+      // Oversized Heavy Brass Buckle with Specular Highlight
+      ctx.fillStyle = '#854d0e';
+      ctx.fillRect(cx - 3, py + 16.5, 6, 5);
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 10, py + 16, 3, 1.5);
-      ctx.fillRect(cx - 9.5, py + 23.5, 2, 1.5);
+      ctx.fillRect(cx - 2.5, py + 17, 5, 4);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(cx - 2, py + 17.5, 4, 3);
+      ctx.fillStyle = '#ffffff'; // White glint on buckle corner
+      ctx.fillRect(cx - 2, py + 17.5, 1.5, 1.5);
+      ctx.fillStyle = '#0f172a'; // Buckle prong
+      ctx.fillRect(cx - 0.5, py + 18, 1, 2);
+
+      // Right Hip Leather Pouch with Gold Stud
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx + 5, py + 17.5, 3.5, 4.5);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(cx + 5.5, py + 18, 2.5, 3.5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(cx + 6, py + 19, 1.5, 1.5);
+
+      // --- 5. Sheathed Longsword on Left Hip (Gleaming Scabbard & Sapphire Pommel) ---
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 11.5, py + 14.5, 5, 12);
+      ctx.fillStyle = '#475569'; // Steel body
+      ctx.fillRect(cx - 11, py + 15.5, 3.5, 10);
+      ctx.fillStyle = '#cbd5e1'; // Ridge line
+      ctx.fillRect(cx - 10.5, py + 15.5, 1.5, 10);
+      // Gold Fittings
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(cx - 11, py + 15.5, 3.5, 2);
+      ctx.fillRect(cx - 10.5, py + 23.5, 2.5, 2);
       // Gold Crossguard & Sapphire Pommel
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 11.5, py + 14, 5.5, 2.5);
+      ctx.fillRect(cx - 12.5, py + 13.5, 6.5, 2.5);
       ctx.fillStyle = '#fef08a';
-      ctx.fillRect(cx - 11, py + 14.5, 4.5, 1);
+      ctx.fillRect(cx - 12, py + 14, 5.5, 1);
       ctx.fillStyle = '#1e40af'; // Sapphire stone
-      ctx.fillRect(cx - 10, py + 12.5, 2.5, 2);
-      ctx.fillStyle = '#60a5fa'; // Star glint
-      ctx.fillRect(cx - 9.5, py + 13, 1, 1);
+      ctx.fillRect(cx - 11, py + 12, 3, 2.5);
+      ctx.fillStyle = '#60a5fa'; // Gem glint
+      ctx.fillRect(cx - 10.5, py + 12.5, 1.5, 1.5);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(cx - 10, py + 12.5, 1, 1);
 
-      // --- 6. Head & Face (3-Tone Skin Contours with Expressive Eyes) ---
+      // --- 6. Head & Face (3-Tone Skin Contours with Clear Anime Features) ---
       ctx.fillStyle = '#0f172a'; // Head contour
-      ctx.fillRect(cx - 6, py + 3, 12, 9);
+      ctx.fillRect(cx - 6.5, py + 2.5, 13, 9.5);
       ctx.fillStyle = '#fed7aa'; // Base tone
-      ctx.fillRect(cx - 5, py + 4, 10, 7.5);
+      ctx.fillRect(cx - 5.5, py + 3.5, 11, 8);
       ctx.fillStyle = '#fdba74'; // Chin and cheek depth
-      ctx.fillRect(cx - 4.5, py + 9.5, 9, 2);
+      ctx.fillRect(cx - 5, py + 9, 10, 2.5);
       ctx.fillStyle = '#f472b6'; // Gentle cheek warmth
-      ctx.fillRect(cx - 4, py + 8.5, 1.5, 1);
-      ctx.fillRect(cx + 2.5, py + 8.5, 1.5, 1);
+      ctx.fillRect(cx - 4.5, py + 8, 2, 1.5);
+      ctx.fillRect(cx + 2.5, py + 8, 2, 1.5);
 
-      // --- 7. Hero's Chestnut Hair (12 Fine Locks with Top Specular Sheen) ---
+      // --- 7. Chestnut Spiky Hair (12 Locks with Specular Sheen) ---
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 8, py, 16, 6);
-      ctx.fillRect(cx - 9, py + 2, 3, 7);
-      ctx.fillRect(cx + 6, py + 2, 3, 7);
+      ctx.fillRect(cx - 8.5, py - 0.5, 17, 6.5);
+      ctx.fillRect(cx - 9.5, py + 1.5, 3.5, 7.5);
+      ctx.fillRect(cx + 6, py + 1.5, 3.5, 7.5);
       ctx.fillStyle = '#3a1906'; // Hair root shadow
-      ctx.fillRect(cx - 7, py + 1, 14, 4);
+      ctx.fillRect(cx - 7.5, py + 0.5, 15, 4.5);
       ctx.fillStyle = '#78350f'; // Hair midtone body
-      ctx.fillRect(cx - 6.5, py + 1.5, 13, 3);
+      ctx.fillRect(cx - 7, py + 1, 14, 3.5);
       ctx.fillStyle = '#92400e'; // Hair individual strands
-      ctx.fillRect(cx - 7.5, py + 3, 2, 5);
-      ctx.fillRect(cx + 5.5, py + 3, 2, 5);
+      ctx.fillRect(cx - 8, py + 2.5, 2.5, 5.5);
+      ctx.fillRect(cx + 5.5, py + 2.5, 2.5, 5.5);
       ctx.fillStyle = '#b45309'; // Crown sunlight gloss
-      ctx.fillRect(cx - 4, py + 1, 8, 1.5);
-      ctx.fillStyle = '#d97706';
-      ctx.fillRect(cx - 2, py + 0.5, 4, 1);
+      ctx.fillRect(cx - 4.5, py + 0.5, 9, 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(cx - 2.5, py, 5, 1);
 
-      // --- 8. Golden Winged Tiara / Circlet with Radiant Emerald ---
+      // --- 8. Golden Winged Tiara / Circlet with Radiant Star Emerald ---
       ctx.fillStyle = '#854d0e';
-      ctx.fillRect(cx - 7, py + 3, 14, 3);
+      ctx.fillRect(cx - 7.5, py + 2.5, 15, 3.5);
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 6.5, py + 3.5, 13, 1.8);
+      ctx.fillRect(cx - 7, py + 3, 14, 2.2);
       ctx.fillStyle = '#fef08a';
-      ctx.fillRect(cx - 6, py + 3.5, 12, 1);
+      ctx.fillRect(cx - 6.5, py + 3, 13, 1.2);
       // Winged crest tips
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 8, py + 2, 2.5, 3.5);
-      ctx.fillRect(cx + 5.5, py + 2, 2.5, 3.5);
+      ctx.fillRect(cx - 8.5, py + 1.5, 3, 4);
+      ctx.fillRect(cx + 5.5, py + 1.5, 3, 4);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx - 7.5, py + 2, 1, 2);
-      ctx.fillRect(cx + 6.5, py + 2, 1, 2);
+      ctx.fillRect(cx - 8, py + 1.5, 1.5, 2);
+      ctx.fillRect(cx + 6.5, py + 1.5, 1.5, 2);
       // Radiant Cut Emerald Center
       ctx.fillStyle = '#064e3b';
-      ctx.fillRect(cx - 1.5, py + 2.5, 3, 3.5);
+      ctx.fillRect(cx - 2, py + 2, 4, 4);
       ctx.fillStyle = '#059669';
-      ctx.fillRect(cx - 1, py + 3, 2, 2.5);
+      ctx.fillRect(cx - 1.5, py + 2.5, 3, 3);
       ctx.fillStyle = '#34d399';
-      ctx.fillRect(cx - 0.5, py + 3, 1, 1.5);
+      ctx.fillRect(cx - 1, py + 2.5, 2, 2);
       ctx.fillStyle = '#ffffff'; // Emerald star sparkle
-      ctx.fillRect(cx - 0.5, py + 3, 1, 1);
+      ctx.fillRect(cx - 0.5, py + 2.5, 1, 1);
 
-      // --- 9. Expressive Eyes (Pupil, Sclera, Double Catchlight) ---
+      // --- 9. Expressive Eyes (Pupil, White Sclera, Dual Catchlight) ---
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 4.5, py + 6.5, 2.5, 3);
-      ctx.fillRect(cx + 2,   py + 6.5, 2.5, 3);
+      ctx.fillRect(cx - 5, py + 6, 3, 3.5);
+      ctx.fillRect(cx + 2, py + 6, 3, 3.5);
       ctx.fillStyle = '#ffffff'; // White sclera
-      ctx.fillRect(cx - 4.5, py + 7, 1, 1.5);
-      ctx.fillRect(cx + 3.5, py + 7, 1, 1.5);
-      ctx.fillStyle = '#38bdf8'; // Cyan eye iris
-      ctx.fillRect(cx - 3.5, py + 7, 1.5, 1.5);
-      ctx.fillRect(cx + 2,   py + 7, 1.5, 1.5);
-      ctx.fillStyle = '#ffffff'; // Catchlight
-      ctx.fillRect(cx - 3.5, py + 6.5, 1, 1);
-      ctx.fillRect(cx + 2,   py + 6.5, 1, 1);
+      ctx.fillRect(cx - 5, py + 6.5, 1.5, 2);
+      ctx.fillRect(cx + 3.5, py + 6.5, 1.5, 2);
+      ctx.fillStyle = '#38bdf8'; // Cyan iris
+      ctx.fillRect(cx - 4, py + 6.5, 1.5, 2);
+      ctx.fillRect(cx + 2, py + 6.5, 1.5, 2);
+      ctx.fillStyle = '#ffffff'; // Double catchlight
+      ctx.fillRect(cx - 4, py + 6, 1, 1);
+      ctx.fillRect(cx + 2, py + 6, 1, 1);
 
-      // --- 10. Stitched Leather Greaves & Travel Boots (Walking Motion) ---
+      // --- 10. Leather Greaves & Travel Boots (Dynamic Walk Animation) ---
       ctx.fillStyle = '#0f172a'; // Boot outline
       if (!isStep) {
-        ctx.fillRect(cx - 6, py + 23, 5, 7);
-        ctx.fillRect(cx + 1, py + 22, 5, 7);
+        ctx.fillRect(cx - 6.5, py + 22.5, 5.5, 7.5);
+        ctx.fillRect(cx + 1, py + 21.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx - 5.5, py + 23.5, 4, 6);
-        ctx.fillRect(cx + 1.5, py + 22.5, 4, 6);
+        ctx.fillRect(cx - 6, py + 23, 4.5, 6.5);
+        ctx.fillRect(cx + 1.5, py + 22, 4.5, 6.5);
         ctx.fillStyle = '#78350f';
-        ctx.fillRect(cx - 5, py + 24, 3, 4);
-        ctx.fillRect(cx + 2, py + 23, 3, 4);
-        ctx.fillStyle = '#a16207'; // Boot cuffs & brass buckle
-        ctx.fillRect(cx - 5.5, py + 23.5, 4, 1.5);
-        ctx.fillRect(cx + 1.5, py + 22.5, 4, 1.5);
+        ctx.fillRect(cx - 5.5, py + 23.5, 3.5, 4.5);
+        ctx.fillRect(cx + 2, py + 22.5, 3.5, 4.5);
+        ctx.fillStyle = '#a16207'; // Boot cuff & brass buckle
+        ctx.fillRect(cx - 6, py + 23, 4.5, 1.5);
+        ctx.fillRect(cx + 1.5, py + 22, 4.5, 1.5);
         ctx.fillStyle = '#fde047';
-        ctx.fillRect(cx - 3, py + 25, 1, 1);
-        ctx.fillRect(cx + 4, py + 24, 1, 1);
+        ctx.fillRect(cx - 3.5, py + 24.5, 1.5, 1.5);
+        ctx.fillRect(cx + 4, py + 23.5, 1.5, 1.5);
       } else {
-        ctx.fillRect(cx - 6, py + 22, 5, 7);
-        ctx.fillRect(cx + 1, py + 23, 5, 7);
+        ctx.fillRect(cx - 6.5, py + 21.5, 5.5, 7.5);
+        ctx.fillRect(cx + 1, py + 22.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx - 5.5, py + 22.5, 4, 6);
-        ctx.fillRect(cx + 1.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx - 6, py + 22, 4.5, 6.5);
+        ctx.fillRect(cx + 1.5, py + 23, 4.5, 6.5);
         ctx.fillStyle = '#78350f';
-        ctx.fillRect(cx - 5, py + 23, 3, 4);
-        ctx.fillRect(cx + 2, py + 24, 3, 4);
+        ctx.fillRect(cx - 5.5, py + 22.5, 3.5, 4.5);
+        ctx.fillRect(cx + 2, py + 23.5, 3.5, 4.5);
         ctx.fillStyle = '#a16207';
-        ctx.fillRect(cx - 5.5, py + 22.5, 4, 1.5);
-        ctx.fillRect(cx + 1.5, py + 23.5, 4, 1.5);
+        ctx.fillRect(cx - 6, py + 22, 4.5, 1.5);
+        ctx.fillRect(cx + 1.5, py + 23, 4.5, 1.5);
         ctx.fillStyle = '#fde047';
-        ctx.fillRect(cx - 3, py + 24, 1, 1);
-        ctx.fillRect(cx + 4, py + 25, 1, 1);
+        ctx.fillRect(cx - 3.5, py + 23.5, 1.5, 1.5);
+        ctx.fillRect(cx + 4, py + 24.5, 1.5, 1.5);
       }
     }
     // ==========================================
     // DIRECTION: UP (Facing Back / Away)
     // ==========================================
     else if (dir === 'up') {
-      // Magnificent Full Red Velvet Cape with 4-Shade Creases & Gold Hem
+      // Full Red Velvet Cape with Gold Satin Border & Back Folds
       ctx.fillStyle = '#0f172a'; // Outline
-      ctx.fillRect(cx - 10, py + 9, 20, 18);
+      ctx.fillRect(cx - 11, py + 8.5, 22, 19);
 
-      // Gold Satin Inner Hem (shows as cape flares at bottom corners)
-      ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(cx - 9.5, py + 24, 19, 2.5);
+      // Gold Satin Inner Hem Flaring at Bottom
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 8.5, py + 24.5, 17, 1);
+      ctx.fillRect(cx - 10.5, py + 24, 21, 3);
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 9.5, py + 23.5, 19, 1);
 
       ctx.fillStyle = '#450a0a'; // Deep vertical crevice shadows
-      ctx.fillRect(cx - 9, py + 10, 18, 14);
+      ctx.fillRect(cx - 10, py + 9.5, 20, 15);
       ctx.fillStyle = '#7f1d1d'; // Mid-dark folds
-      ctx.fillRect(cx - 8, py + 11, 16, 12);
+      ctx.fillRect(cx - 9, py + 10.5, 18, 13);
       ctx.fillStyle = '#b91c1c'; // Body red
-      ctx.fillRect(cx - 7, py + 11.5, 14, 10);
-      ctx.fillStyle = '#dc2626'; // Vibrant red
-      ctx.fillRect(cx - 5, py + 12, 10, 8);
-      // Twin vertical fold highlights (flowing down the back)
+      ctx.fillRect(cx - 8, py + 11, 16, 11);
+      ctx.fillStyle = '#dc2626'; // Vibrant scarlet
+      ctx.fillRect(cx - 6, py + 11.5, 12, 9);
+      // Twin vertical fold highlights flowing down the back
       ctx.fillStyle = '#ef4444';
-      ctx.fillRect(cx - 6, py + 12, 2, 10);
-      ctx.fillRect(cx + 4, py + 12, 2, 10);
-      ctx.fillStyle = '#f87171';
-      ctx.fillRect(cx - 5.5, py + 13, 1, 7);
-      ctx.fillRect(cx + 4.5, py + 13, 1, 7);
+      ctx.fillRect(cx - 7, py + 11.5, 2.5, 11);
+      ctx.fillRect(cx + 4.5, py + 11.5, 2.5, 11);
+      ctx.fillStyle = '#fca5a5';
+      ctx.fillRect(cx - 6.5, py + 12.5, 1.5, 8);
+      ctx.fillRect(cx + 5, py + 12.5, 1.5, 8);
 
       // Heavy Gold Cloak Clasps on Shoulders
       ctx.fillStyle = '#854d0e';
-      ctx.fillRect(cx - 9.5, py + 9, 4, 4);
-      ctx.fillRect(cx + 5.5, py + 9, 4, 4);
+      ctx.fillRect(cx - 10.5, py + 8.5, 4.5, 4.5);
+      ctx.fillRect(cx + 6, py + 8.5, 4.5, 4.5);
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 9, py + 9.5, 3, 3);
-      ctx.fillRect(cx + 6, py + 9.5, 3, 3);
+      ctx.fillRect(cx - 10, py + 9, 3.5, 3.5);
+      ctx.fillRect(cx + 6.5, py + 9, 3.5, 3.5);
       ctx.fillStyle = '#fef08a';
-      ctx.fillRect(cx - 8.5, py + 9.5, 1.5, 1.5);
-      ctx.fillRect(cx + 6.5, py + 9.5, 1.5, 1.5);
+      ctx.fillRect(cx - 9.5, py + 9, 2, 2);
+      ctx.fillRect(cx + 7, py + 9, 2, 2);
 
-      // Back of Head & Detailed Spiky Locks
+      // Back of Head & Spiky Locks
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 8, py + 1, 16, 9);
+      ctx.fillRect(cx - 8.5, py + 0.5, 17, 9.5);
       ctx.fillStyle = '#3a1906';
-      ctx.fillRect(cx - 7, py + 2, 14, 7);
+      ctx.fillRect(cx - 7.5, py + 1.5, 15, 7.5);
       ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 6, py + 3, 12, 5);
+      ctx.fillRect(cx - 6.5, py + 2.5, 13, 5.5);
       ctx.fillStyle = '#92400e';
-      ctx.fillRect(cx - 5, py + 4, 10, 3);
+      ctx.fillRect(cx - 5.5, py + 3.5, 11, 3.5);
       ctx.fillStyle = '#b45309';
-      ctx.fillRect(cx - 4, py + 2, 8, 2.5);
+      ctx.fillRect(cx - 4.5, py + 1.5, 9, 3);
 
       // Gold Circlet Band visible from behind
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 6, py + 4.5, 12, 1.5);
+      ctx.fillRect(cx - 6.5, py + 4, 13, 2);
       ctx.fillStyle = '#fef08a';
-      ctx.fillRect(cx - 4, py + 4.5, 8, 1);
+      ctx.fillRect(cx - 4.5, py + 4, 9, 1);
 
       // Stepping Boots
       ctx.fillStyle = '#0f172a';
       if (!isStep) {
-        ctx.fillRect(cx - 6, py + 23, 5, 7);
-        ctx.fillRect(cx + 1, py + 21, 5, 7);
+        ctx.fillRect(cx - 6.5, py + 22.5, 5.5, 7.5);
+        ctx.fillRect(cx + 1, py + 20.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx - 5.5, py + 23.5, 4, 6);
-        ctx.fillRect(cx + 1.5, py + 21.5, 4, 6);
+        ctx.fillRect(cx - 6, py + 23, 4.5, 6.5);
+        ctx.fillRect(cx + 1.5, py + 21, 4.5, 6.5);
       } else {
-        ctx.fillRect(cx - 6, py + 21, 5, 7);
-        ctx.fillRect(cx + 1, py + 23, 5, 7);
+        ctx.fillRect(cx - 6.5, py + 20.5, 5.5, 7.5);
+        ctx.fillRect(cx + 1, py + 22.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx - 5.5, py + 21.5, 4, 6);
-        ctx.fillRect(cx + 1.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx - 6, py + 21, 4.5, 6.5);
+        ctx.fillRect(cx + 1.5, py + 23, 4.5, 6.5);
       }
     }
     // ==========================================
     // DIRECTION: LEFT (Side Profile Walking Left)
     // ==========================================
     else if (dir === 'left') {
-      // Billowing Velvet Cape to the Right (Flaring with dynamic movement)
+      // Billowing Velvet Cape to the Right
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx + 1, py + 11, 10, 14);
+      ctx.fillRect(cx + 1, py + 10, 11, 15);
       // Gold satin lining reveal
-      ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(cx + 8, py + 12, 2.5, 12);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx + 8.5, py + 13, 1.5, 10);
+      ctx.fillRect(cx + 9, py + 11, 3, 13);
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx + 8.5, py + 12, 1.5, 11);
 
       ctx.fillStyle = '#450a0a';
-      ctx.fillRect(cx + 2, py + 12, 8, 12);
+      ctx.fillRect(cx + 2, py + 11, 9, 13);
       ctx.fillStyle = '#7f1d1d';
-      ctx.fillRect(cx + 2, py + 12, 7, 10);
+      ctx.fillRect(cx + 2, py + 11, 8, 11);
       ctx.fillStyle = '#dc2626';
-      ctx.fillRect(cx + 2, py + 13, 5, 8);
+      ctx.fillRect(cx + 2, py + 12, 6, 9);
       ctx.fillStyle = '#ef4444';
-      ctx.fillRect(cx + 3, py + 14, 3, 6);
+      ctx.fillRect(cx + 3, py + 13, 4, 7);
 
-      // Blue Tunic (Side View with Stitched Leather Vest)
+      // Blue Tunic (Side View)
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 6, py + 10, 11, 14);
+      ctx.fillRect(cx - 6.5, py + 9.5, 12, 14.5);
       ctx.fillStyle = '#172554';
-      ctx.fillRect(cx - 5, py + 11, 9, 12);
+      ctx.fillRect(cx - 5.5, py + 10.5, 10, 12.5);
       ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(cx - 4.5, py + 11.5, 8, 11);
+      ctx.fillRect(cx - 5, py + 11, 9, 11.5);
       ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 4, py + 12, 7, 10);
+      ctx.fillRect(cx - 4.5, py + 11.5, 8, 10.5);
       ctx.fillStyle = '#3b82f6';
-      ctx.fillRect(cx - 3, py + 13, 4, 4);
+      ctx.fillRect(cx - 3.5, py + 12.5, 5, 4.5);
 
       // Gold Shoulder Pauldron (Left Profile)
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 3.5, py + 9.5, 5, 4);
+      ctx.fillRect(cx - 4, py + 8.5, 6, 5);
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 3, py + 10, 4, 3);
+      ctx.fillRect(cx - 3.5, py + 9, 5, 4);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx - 2.5, py + 10, 2, 1.5);
+      ctx.fillRect(cx - 3, py + 9, 2.5, 2);
 
       // Leather Cross-Belt & Sheathed Longsword Angle
       ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 5, py + 17, 9, 3.5);
+      ctx.fillRect(cx - 5.5, py + 16.5, 10, 4);
       ctx.fillStyle = '#eab308'; // Belt buckle side
-      ctx.fillRect(cx - 4, py + 17, 3, 3.5);
+      ctx.fillRect(cx - 4.5, py + 16.5, 3.5, 4);
       // Sword scabbard trailing behind
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 2, py + 16, 10, 4);
+      ctx.fillRect(cx - 2.5, py + 15.5, 11, 4.5);
       ctx.fillStyle = '#475569';
-      ctx.fillRect(cx - 1, py + 17, 8, 2);
+      ctx.fillRect(cx - 1.5, py + 16.5, 9, 2.5);
       ctx.fillStyle = '#eab308'; // Hilt pommel
-      ctx.fillRect(cx - 4, py + 16, 4, 3.5);
+      ctx.fillRect(cx - 4.5, py + 15.5, 4.5, 4);
       ctx.fillStyle = '#1e40af';
-      ctx.fillRect(cx - 5, py + 16.5, 2, 2);
+      ctx.fillRect(cx - 5.5, py + 16, 2.5, 2.5);
 
       // Profile Face & Jawline
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 7, py + 3, 10, 9);
+      ctx.fillRect(cx - 7.5, py + 2.5, 11, 9.5);
       ctx.fillStyle = '#fed7aa';
-      ctx.fillRect(cx - 6, py + 4, 8, 7.5);
+      ctx.fillRect(cx - 6.5, py + 3.5, 9, 8);
       ctx.fillStyle = '#fdba74';
-      ctx.fillRect(cx - 4, py + 10, 5, 1.5);
+      ctx.fillRect(cx - 4.5, py + 9.5, 6, 2);
 
       // Spiky Locks Blowing to the Right
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 7, py, 12, 6);
-      ctx.fillRect(cx + 2, py + 2, 6, 6);
+      ctx.fillRect(cx - 7.5, py - 0.5, 13, 6.5);
+      ctx.fillRect(cx + 2.5, py + 1.5, 7, 7);
       ctx.fillStyle = '#3a1906';
-      ctx.fillRect(cx - 6, py + 1, 10, 4);
+      ctx.fillRect(cx - 6.5, py + 0.5, 11, 4.5);
       ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 5, py + 2, 8, 3);
+      ctx.fillRect(cx - 5.5, py + 1.5, 9, 3.5);
       ctx.fillStyle = '#b45309';
-      ctx.fillRect(cx - 4, py + 1, 6, 1.5);
+      ctx.fillRect(cx - 4.5, py + 0.5, 7, 2);
 
       // Circlet & Emerald on Forehead
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 6.5, py + 3.5, 8, 2);
+      ctx.fillRect(cx - 7, py + 2.5, 9, 2.5);
       ctx.fillStyle = '#059669';
-      ctx.fillRect(cx - 6.5, py + 3.5, 2.5, 2.5);
+      ctx.fillRect(cx - 7, py + 2.5, 3, 3);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx - 6, py + 3.5, 1, 1);
+      ctx.fillRect(cx - 6.5, py + 2.5, 1.5, 1.5);
 
       // Side Eye
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 5.5, py + 6.5, 2.5, 3);
+      ctx.fillRect(cx - 6, py + 5.5, 3, 3.5);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx - 5.5, py + 6.5, 1, 1);
+      ctx.fillRect(cx - 6, py + 5.5, 1.5, 1.5);
       ctx.fillStyle = '#38bdf8';
-      ctx.fillRect(cx - 5, py + 7, 1.5, 1.5);
+      ctx.fillRect(cx - 5.5, py + 6, 2, 2);
 
-      // Stepping Boots (Forward stride)
+      // Stepping Boots
       ctx.fillStyle = '#0f172a';
       if (!isStep) {
-        ctx.fillRect(cx - 7, py + 23, 5, 7);
-        ctx.fillRect(cx + 1, py + 22, 5, 7);
+        ctx.fillRect(cx - 7.5, py + 22.5, 5.5, 7.5);
+        ctx.fillRect(cx + 1, py + 21.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx - 6.5, py + 23.5, 4, 6);
-        ctx.fillRect(cx + 1.5, py + 22.5, 4, 6);
+        ctx.fillRect(cx - 7, py + 23, 4.5, 6.5);
+        ctx.fillRect(cx + 1.5, py + 22, 4.5, 6.5);
       } else {
-        ctx.fillRect(cx - 3, py + 22, 5, 7);
-        ctx.fillRect(cx - 7, py + 23, 5, 7);
+        ctx.fillRect(cx - 3.5, py + 21.5, 5.5, 7.5);
+        ctx.fillRect(cx - 7.5, py + 22.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx - 2.5, py + 22.5, 4, 6);
-        ctx.fillRect(cx - 6.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx - 3, py + 22, 4.5, 6.5);
+        ctx.fillRect(cx - 7, py + 23, 4.5, 6.5);
       }
     }
     // ==========================================
@@ -3749,107 +3931,107 @@ class TokyoRpgEngine {
     else if (dir === 'right') {
       // Billowing Velvet Cape to the Left
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 11, py + 11, 10, 14);
+      ctx.fillRect(cx - 12, py + 10, 11, 15);
       // Gold satin lining reveal
-      ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(cx - 10.5, py + 12, 2.5, 12);
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(cx - 10, py + 13, 1.5, 10);
+      ctx.fillRect(cx - 11.5, py + 11, 3, 13);
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(cx - 10, py + 12, 1.5, 11);
 
       ctx.fillStyle = '#450a0a';
-      ctx.fillRect(cx - 10, py + 12, 8, 12);
+      ctx.fillRect(cx - 11, py + 11, 9, 13);
       ctx.fillStyle = '#7f1d1d';
-      ctx.fillRect(cx - 9, py + 12, 7, 10);
+      ctx.fillRect(cx - 10, py + 11, 8, 11);
       ctx.fillStyle = '#dc2626';
-      ctx.fillRect(cx - 8, py + 13, 6, 8);
+      ctx.fillRect(cx - 8.5, py + 12, 6, 9);
       ctx.fillStyle = '#ef4444';
-      ctx.fillRect(cx - 7, py + 14, 4, 6);
+      ctx.fillRect(cx - 7.5, py + 13, 4, 7);
 
       // Blue Tunic (Side View)
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 5, py + 10, 11, 14);
+      ctx.fillRect(cx - 5.5, py + 9.5, 12, 14.5);
       ctx.fillStyle = '#172554';
-      ctx.fillRect(cx - 4, py + 11, 9, 12);
+      ctx.fillRect(cx - 4.5, py + 10.5, 10, 12.5);
       ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(cx - 3.5, py + 11.5, 8, 11);
+      ctx.fillRect(cx - 4, py + 11, 9, 11.5);
       ctx.fillStyle = '#2563eb';
-      ctx.fillRect(cx - 3, py + 12, 7, 10);
+      ctx.fillRect(cx - 3.5, py + 11.5, 8, 10.5);
       ctx.fillStyle = '#3b82f6';
-      ctx.fillRect(cx - 1, py + 13, 4, 4);
+      ctx.fillRect(cx - 1.5, py + 12.5, 5, 4.5);
 
       // Gold Shoulder Pauldron (Right Profile)
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 1.5, py + 9.5, 5, 4);
+      ctx.fillRect(cx - 2, py + 8.5, 6, 5);
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 1, py + 10, 4, 3);
+      ctx.fillRect(cx - 1.5, py + 9, 5, 4);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx + 0.5, py + 10, 2, 1.5);
+      ctx.fillRect(cx + 0.5, py + 9, 2.5, 2);
 
       // Leather Belt & Buckle
       ctx.fillStyle = '#451a03';
-      ctx.fillRect(cx - 4, py + 17, 9, 3.5);
+      ctx.fillRect(cx - 4.5, py + 16.5, 10, 4);
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx + 1, py + 17, 3, 3.5);
+      ctx.fillRect(cx + 1, py + 16.5, 3.5, 4);
 
       // Sword Scabbard Tilted Back Left
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 8, py + 16, 10, 4);
+      ctx.fillRect(cx - 8.5, py + 15.5, 11, 4.5);
       ctx.fillStyle = '#475569';
-      ctx.fillRect(cx - 7, py + 17, 8, 2);
+      ctx.fillRect(cx - 7.5, py + 16.5, 9, 2.5);
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx, py + 16, 4, 3.5);
+      ctx.fillRect(cx, py + 15.5, 4.5, 4);
       ctx.fillStyle = '#1e40af';
-      ctx.fillRect(cx + 3, py + 16.5, 2, 2);
+      ctx.fillRect(cx + 3, py + 16, 2.5, 2.5);
 
       // Profile Face & Jawline
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 3, py + 3, 10, 9);
+      ctx.fillRect(cx - 3.5, py + 2.5, 11, 9.5);
       ctx.fillStyle = '#fed7aa';
-      ctx.fillRect(cx - 2, py + 4, 8, 7.5);
+      ctx.fillRect(cx - 2.5, py + 3.5, 9, 8);
       ctx.fillStyle = '#fdba74';
-      ctx.fillRect(cx - 1, py + 10, 5, 1.5);
+      ctx.fillRect(cx - 1.5, py + 9.5, 6, 2);
 
       // Spiky Locks Blowing to the Left
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 5, py, 12, 6);
-      ctx.fillRect(cx - 8, py + 2, 6, 6);
+      ctx.fillRect(cx - 5.5, py - 0.5, 13, 6.5);
+      ctx.fillRect(cx - 9.5, py + 1.5, 7, 7);
       ctx.fillStyle = '#3a1906';
-      ctx.fillRect(cx - 4, py + 1, 10, 4);
+      ctx.fillRect(cx - 4.5, py + 0.5, 11, 4.5);
       ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 3, py + 2, 8, 3);
+      ctx.fillRect(cx - 3.5, py + 1.5, 9, 3.5);
       ctx.fillStyle = '#b45309';
-      ctx.fillRect(cx - 2, py + 1, 6, 1.5);
+      ctx.fillRect(cx - 2.5, py + 0.5, 7, 2);
 
       // Circlet & Emerald
       ctx.fillStyle = '#eab308';
-      ctx.fillRect(cx - 1.5, py + 3.5, 8, 2);
+      ctx.fillRect(cx - 2, py + 2.5, 9, 2.5);
       ctx.fillStyle = '#059669';
-      ctx.fillRect(cx + 4, py + 3.5, 2.5, 2.5);
+      ctx.fillRect(cx + 4, py + 2.5, 3, 3);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx + 5, py + 3.5, 1, 1);
+      ctx.fillRect(cx + 5, py + 2.5, 1.5, 1.5);
 
       // Eye
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx + 3, py + 6.5, 2.5, 3);
+      ctx.fillRect(cx + 3, py + 5.5, 3, 3.5);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(cx + 4.5, py + 6.5, 1, 1);
+      ctx.fillRect(cx + 4.5, py + 5.5, 1.5, 1.5);
       ctx.fillStyle = '#38bdf8';
-      ctx.fillRect(cx + 3.5, py + 7, 1.5, 1.5);
+      ctx.fillRect(cx + 3.5, py + 6, 2, 2);
 
       // Stepping Boots
       ctx.fillStyle = '#0f172a';
       if (!isStep) {
-        ctx.fillRect(cx + 2, py + 23, 5, 7);
-        ctx.fillRect(cx - 6, py + 22, 5, 7);
+        ctx.fillRect(cx + 2, py + 22.5, 5.5, 7.5);
+        ctx.fillRect(cx - 6.5, py + 21.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx + 2.5, py + 23.5, 4, 6);
-        ctx.fillRect(cx - 5.5, py + 22.5, 4, 6);
+        ctx.fillRect(cx + 2.5, py + 23, 4.5, 6.5);
+        ctx.fillRect(cx - 6, py + 22, 4.5, 6.5);
       } else {
-        ctx.fillRect(cx - 2, py + 22, 5, 7);
-        ctx.fillRect(cx + 2, py + 23, 5, 7);
+        ctx.fillRect(cx - 2, py + 21.5, 5.5, 7.5);
+        ctx.fillRect(cx + 2, py + 22.5, 5.5, 7.5);
         ctx.fillStyle = '#291102';
-        ctx.fillRect(cx - 1.5, py + 22.5, 4, 6);
-        ctx.fillRect(cx + 2.5, py + 23.5, 4, 6);
+        ctx.fillRect(cx - 1.5, py + 22, 4.5, 6.5);
+        ctx.fillRect(cx + 2.5, py + 23, 4.5, 6.5);
       }
     }
 
